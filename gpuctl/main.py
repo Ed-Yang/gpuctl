@@ -1,0 +1,161 @@
+#!/usr/bin/env python3
+
+import sys
+import signal
+import argparse
+import logging
+
+from gpuctl import DRYRUN, GpuCtl, logger
+from gpuctl import PciDev, GpuDev, GpuAMD, GpuNV
+
+
+def run():
+
+    gpu_ctl = None
+
+    def sigstop(a, b):
+        gpu_ctl.stop()
+        # print(f'exit')
+        # sys.exit(0)
+
+    signal.signal(signal.SIGINT, sigstop)
+
+    parser = argparse.ArgumentParser()
+
+    # device
+    parser.add_argument('-l', '--list', action='store_true',
+                        help="list all GPU cards")
+    parser.add_argument(
+        '-s', '--slots', type=str, help="use PCI slot name to locate GPU (ie. 0000:01:00.0/0000:01:00.1)")
+    parser.add_argument('-a', '--amd', action='store_true',
+                        help="only use AMD GPU")
+    parser.add_argument('-n', '--nvidia', action='store_true',
+                        help="only use Nvidia GPU")
+
+    # timer
+    parser.add_argument('--interval', type=int, default=GpuCtl.INTERVAL,
+                        help="monitoring interval")
+
+    # fan control
+    parser.add_argument('-f', '--fan', type=int,
+                        help="if temperature is exceed than FAN once, activate fan control (default:70)")
+    parser.add_argument('-d', '--delta', type=int, default=2,
+                        help="set fan speed if temperature diff %% is over DELTA (defaut:2)")
+
+    # temperature monitoring/actions
+    parser.add_argument('--temp', type=int,
+                        help="over temperature action threshold")
+    parser.add_argument('--temp-cdown', type=int, default=GpuCtl.TEMP_CDOWN,
+                        help="over temperature count down")
+    parser.add_argument('--tas', type=str,
+                        help="over temperature action script")
+
+    # rate monitoring/actions
+    parser.add_argument('--rms', type=str, help="rate monitoring script")
+    parser.add_argument('--rate', type=int, default=1000,
+                        help="under rate threshold (default: 1000 kh)")
+    parser.add_argument('--rate-cdown', type=int, default=GpuCtl.RATE_CDOWN,
+                        help="under rate count down")
+    parser.add_argument('--ras', type=str, help="under rate action script")
+
+    parser.add_argument('--curve', type=str, help="set temp/fan-speed curve (ie. 0:0/10:10/80:100)")
+
+    # misc
+    parser.add_argument('-v', '--verbose',
+                        action='store_true', help="show debug message")
+
+    # parse arguments
+    args = parser.parse_args()
+
+    if args.verbose:
+        logger.setLevel(logging.DEBUG)
+
+    # parse curve
+    curve = None
+    if args.curve:
+        clst =  args.curve.split('/')
+        for c in clst:
+            if ':' not in c:
+                print(f'Invaid curve: [{args.curve}]')
+                sys.exit(0)
+
+        if clst:
+            curve = [ [int(c.split(':')[0]), int(c.split(':')[1]) ] for c in clst]
+        if curve and GpuDev.check_curve(curve):
+            print(f'Applying curve: [{args.curve}]')
+        else:
+            print(f'Invaid curve: [{args.curve}]')
+
+    # by slots
+    gpu_devices = []
+    slot_names = []
+
+    # parse slot
+    slots = None
+    if args.slots:
+        slots = args.slots.split('/')
+        for sn in slots:
+            sn = sn.strip().lstrip()
+            sn = sn.strip('\'').lstrip('\'')
+            pdev = PciDev.create(sn)
+            gpu_dev = None
+            if pdev and pdev.is_amd():
+                gpu_dev = GpuAMD(pdev)
+            if pdev and pdev.is_nvidia():
+                gpu_dev = GpuNV(pdev)
+            if gpu_dev and gpu_dev.is_gpu():
+                gpu_devices.append(gpu_dev)
+                slot_names.append(gpu_dev.pci_dev.slot_name)
+
+    # by vendors
+    vendors = []
+    if args.amd:
+        vendors.append('AMD')
+
+    if args.nvidia:
+        vendors.append('NVIDIA')
+
+    pci_devices = PciDev.discovery(vendors)
+    for pdev in pci_devices:
+        gpu_dev = None
+        if pdev and pdev.is_amd():
+            gpu_dev = GpuAMD(pdev)
+        if pdev and pdev.is_nvidia():
+            gpu_dev = GpuNV(pdev)
+
+        # remove duplicate gpu
+        if gpu_dev and gpu_dev.is_gpu() and pdev.slot_name not in slot_names:
+            gpu_devices.append(gpu_dev)   
+
+    # list monitored devices
+    print("\n")
+    print("ID Slot Name    Vendor   PCI-ID")
+    print("-- ------------ -------- -----------")
+    
+    cnt = 1
+    for gpu in gpu_devices:
+        pdev = gpu.pci_dev
+        print(f"{cnt:2} {pdev.slot_name} {pdev.vendor_name():8} [{pdev.vendor_id}:{pdev.device_id}]")
+        cnt += 1
+
+
+    if args.list:
+        sys.exit(0)
+
+    if len(gpu_devices) == 0:
+        print('No GPU found, abort !\n')
+        sys.exit(0)
+
+    gpu_ctl = GpuCtl(gpu_devices=gpu_devices, fan=args.fan,
+                     delta=args.delta, temp=args.temp, tas=args.tas, 
+                     rms=args.rms, rate=args.rate, ras=args.ras, curve=curve)
+
+    if not gpu_ctl.set_interval(intvl=args.interval, temp=args.temp_cdown, rate=args.rate_cdown):
+        print(f'Interval error {args.interval}/{args.temp_cdown}/{args.rate_cdown} !\n')
+        sys.exit(0)
+
+    print(f"\ngpuctl: started\n")
+    gpu_ctl.start()
+
+if __name__ == '__main__':
+    run()
