@@ -107,9 +107,9 @@ class PciDev():
         pci_devices = []
         cmd = ''
         if vendor_filter:
-            cmd = "lspci1 -D -nn | awk '/" f"{'|'.join(vendor_filter)}" + "/{print $0}'"
+            cmd = "lspci -D -nn | awk '/" f"{'|'.join(vendor_filter)}" + "/{print $0}'"
         else:
-            cmd = "lspci1 -D -nn"
+            cmd = "lspci -D -nn"
         try:
             data = sc.exec_cmd(cmd)
             lines = data.decode("utf-8").split('\n')
