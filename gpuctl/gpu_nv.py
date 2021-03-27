@@ -61,12 +61,15 @@ class GpuNV(GpuDev):
         try:
             sc.exec_cmd(cmd)
             logger.debug(f'[{self.pci_dev.slot_name}/{self.name}] set speed {speed}%')
+            self.speed = speed
         except:
             logger.error(f'exec_cmd: {cmd} failed !!')
 
 
     def get_speed(self):
-        s = nv.nvmlDeviceGetFanSpeed(self.nvh)
+        # TODO: nvmlDeviceGetFanSpeed report wrong speed, so return store value
+        # s = nv.nvmlDeviceGetFanSpeed(self.nvh)
+        s = self.speed
         return s
 
     def get_temperature(self):
