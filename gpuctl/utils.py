@@ -48,7 +48,7 @@ class FileVarMixn(object):
                 f.write(value_str)
             rv = True
         except PermissionError:
-            logger.error('needs root priviledge !!!')
+            logger.error(f'needs root priviledge ({path}) !!!')
             sys.exit(0)
 
         except:

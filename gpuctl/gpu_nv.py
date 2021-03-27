@@ -37,9 +37,9 @@ class GpuNV(GpuDev):
             if bus_id == self.pci_dev.bus_id and \
                slot_id == self.pci_dev.slot_id and \
                function == self.pci_dev.function:
-                logger.info(
-                    f"NV: Driver Version {nv.nvmlSystemGetDriverVersion()}")
-                logger.info(f"NV: Device {i} {nv.nvmlDeviceGetName(handle)}")
+                ver = nv.nvmlSystemGetDriverVersion().decode('utf-8')
+                name = nv.nvmlDeviceGetName(handle).decode('utf-8')
+                logger.debug(f"NV[{i}]: Device {name} Driver {ver}")
                 self.nv_id = i
                 self.nvh = handle
                 self.name = 'NV '

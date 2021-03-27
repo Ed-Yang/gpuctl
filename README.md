@@ -18,7 +18,7 @@ Currently, the example of action script are based on the [miner's remote managem
 Intel CPU/16G RAM
 Ubuntu 18.4/Python3
 
-* Environment variables
+* Environment setup
 
     For configuring Nvidia's GPU, it is needed to set the following environment.
 
@@ -26,6 +26,17 @@ Ubuntu 18.4/Python3
     export DISPLAY=:0
     export XAUTHORITY=/var/run/lightdm/root/:0
     export NO_AT_BRIDGE=1
+    ```
+
+    For running gpuctl in user mode (optional):
+
+    ```shell
+    sudo adduser <user> video
+
+    sudo chgrp video /sys/class/drm/<card-n>/device/hwmon/hwmon2/pwm1_enable
+    sudo chgrp video /sys/class/drm/<card-n>/device/hwmon/hwmon2/pwm1
+    sudo chmod g+w /sys/class/drm/<card-n>/device/hwmon/hwmon2/pwm1_enable
+    sudo chmod g+w /sys/class/drm/<card-n>/device/hwmon/hwmon2/pwm1
     ```
 
 * Clone the source
@@ -62,10 +73,10 @@ if it is necessary to provide specific setting for a GPU, it is able to run sepe
 gpuctl instance with expected parametets.
 
     ```shell
-    usage: gpuctl [-h] [-l] [-s SLOTS] [-a] [-n] [--interval INTERVAL] [-f FAN]
-                [-d DELTA] [--temp TEMP] [--temp-cdown TEMP_CDOWN] [--tas TAS]
-                [--rms RMS] [--rate RATE] [--rate-cdown RATE_CDOWN] [--ras RAS]
-                [--curve CURVE] [-v]
+    usage: gpuctl [-h] [-l] [-s SLOTS] [-a] [-n] [--interval INTERVAL]
+                [--set-speed [0-100]] [-f FAN] [-d DELTA] [--temp TEMP]
+                [--temp-cdown TEMP_CDOWN] [--tas TAS] [--rms RMS] [--rate RATE]
+                [--rate-cdown RATE_CDOWN] [--ras RAS] [--curve CURVE] [-v]
 
     optional arguments:
     -h, --help            show this help message and exit
@@ -76,6 +87,7 @@ gpuctl instance with expected parametets.
     -a, --amd             only use AMD GPU
     -n, --nvidia          only use Nvidia GPU
     --interval INTERVAL   monitoring interval
+    --set-speed [0-100]   set the fan speed (0~100)
     -f FAN, --fan FAN     if temperature is exceed than FAN once, activate fan
                             control (default:70)
     -d DELTA, --delta DELTA
@@ -176,9 +188,9 @@ Restart miner:
     ```
 
     ```shell
-    ID Slot Name    Vendor   PCI-ID
-    -- ------------ -------- -----------
-    1 0000:01:00.0 AMD      [1002:67DF]
+    ID Slot Name    Vendor   PCI-ID      Temp. Fan 
+    -- ------------ -------- ----------- ----- ----
+    1 0000:01:00.0 AMD      [1002:67DF]   61c 47%
     ```
 
 * Example 2) For all of the GPUs, if its temperature is over 30c, then activate the fan speed control.
@@ -249,6 +261,18 @@ Use ethminer as example:
     ```
 
 If the miner is rebooting, it might not be able to retrieve the hash rate for a few seconds.
+
+* Example 5) Set all of the GPU's fan speed to 50%
+
+    ```shell
+    sudo gpuctl --set-speed 50
+    ```
+
+    ```shell
+    ID Slot Name    Vendor   PCI-ID      Temp. Fan 
+    -- ------------ -------- ----------- ----- ----
+    1 0000:01:00.0 AMD      [1002:67DF]   61c 47%
+    ```
 
 * Run Test Cause
 

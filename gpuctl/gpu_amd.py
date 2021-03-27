@@ -48,6 +48,11 @@ class GpuAMD(GpuDev):
                 self.hwmon_dir = hwmon_root + '/' + t[0]
                 break
         
+        # fan
+        if self.card:
+            self.max = fv.read_file_value(self.hwmon_dir, GpuAMD.PWM_MAX)
+            self.min = fv.read_file_value(self.hwmon_dir, GpuAMD.PWM_MIN)
+
         # curve
         self.curve = GpuAMD.CURVE
         self.temp_delta = GpuAMD.TEMP_DELTA
@@ -62,9 +67,7 @@ class GpuAMD(GpuDev):
         # hwmon_dir = f'{GpuAMD.DRM_DIR}{self.card}/device/hwmon/hwmon2/'
         speed = 100 if speed > 100 else speed
         speed = 0 if speed < 0 else speed
-        max = fv.read_file_value(self.hwmon_dir, GpuAMD.PWM_MAX)
-        min = fv.read_file_value(self.hwmon_dir, GpuAMD.PWM_MIN)
-        pwm = int((max - min) * speed / 100)
+        pwm = int((self.max - self.min) * speed / 100)
         fv.write_file_value(self.hwmon_dir, GpuAMD.PWM_MODE, 0)  # 0: disabled
         fv.write_file_value(self.hwmon_dir, GpuAMD.PWM_MODE, 1)  # 1: manual
         fv.write_file_value(self.hwmon_dir, GpuAMD.PWM_VAL, pwm)
@@ -72,7 +75,9 @@ class GpuAMD(GpuDev):
         logger.debug(f'[{self.pci_dev.slot_name}/{self.name}] set speed {speed}% pwm {pwm}')
 
     def get_speed(self):
-        return self.speed
+        pwn = fv.read_file_value(self.hwmon_dir, GpuAMD.PWM_VAL)
+        speed = int(pwn/(self.max-self.min) * 100)
+        return speed
 
     def get_temperature(self):
         # hwmon_dir = f'{GpuAMD.DRM_DIR}{self.card}/device/hwmon/hwmon2/'

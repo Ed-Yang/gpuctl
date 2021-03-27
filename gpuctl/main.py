@@ -37,6 +37,8 @@ def run():
                         help="monitoring interval")
 
     # fan control
+    parser.add_argument('--set-speed', type=int, choices=range(0,101), metavar="[0-100]", 
+                        help="set the fan speed (0~100)")
     parser.add_argument('-f', '--fan', type=int,
                         help="if temperature is exceed than FAN once, activate fan control (default:70)")
     parser.add_argument('-d', '--delta', type=int, default=2,
@@ -58,7 +60,8 @@ def run():
                         help="under rate count down")
     parser.add_argument('--ras', type=str, help="under rate action script")
 
-    parser.add_argument('--curve', type=str, help="set temp/fan-speed curve (ie. 0:0/10:10/80:100)")
+    parser.add_argument('--curve', type=str,
+                        help="set temp/fan-speed curve (ie. 0:0/10:10/80:100)")
 
     # misc
     parser.add_argument('-v', '--verbose',
@@ -73,14 +76,15 @@ def run():
     # parse curve
     curve = None
     if args.curve:
-        clst =  args.curve.split('/')
+        clst = args.curve.split('/')
         for c in clst:
             if ':' not in c:
                 print(f'Invaid curve: [{args.curve}]')
                 sys.exit(0)
 
         if clst:
-            curve = [ [int(c.split(':')[0]), int(c.split(':')[1]) ] for c in clst]
+            curve = [[int(c.split(':')[0]), int(c.split(':')[1])]
+                     for c in clst]
         if curve and GpuDev.check_curve(curve):
             print(f'Applying curve: [{args.curve}]')
         else:
@@ -125,21 +129,27 @@ def run():
 
         # remove duplicate gpu
         if gpu_dev and gpu_dev.is_gpu() and pdev.slot_name not in slot_names:
-            gpu_devices.append(gpu_dev)   
+            gpu_devices.append(gpu_dev)
 
     # list monitored devices
     print("\n")
-    print("ID Slot Name    Vendor   PCI-ID")
-    print("-- ------------ -------- -----------")
-    
+    print("ID Slot Name    Vendor   PCI-ID      Temp. Fan ")
+    print("-- ------------ -------- ----------- ----- ----")
+
     cnt = 1
     for gpu in gpu_devices:
         pdev = gpu.pci_dev
-        print(f"{cnt:2} {pdev.slot_name} {pdev.vendor_name():8} [{pdev.vendor_id}:{pdev.device_id}]")
+        # set fan speed
+        if args.set_speed != None:
+            gpu.set_speed(args.set_speed)
+        print(
+            f"{cnt:2} {pdev.slot_name} {pdev.vendor_name():8} [{pdev.vendor_id}:{pdev.device_id}] {gpu.get_temperature():4}c {gpu.get_speed()}%")
         cnt += 1
 
-
     if args.list:
+        sys.exit(0)
+
+    if args.set_speed != None:
         sys.exit(0)
 
     if len(gpu_devices) == 0:
@@ -147,15 +157,17 @@ def run():
         sys.exit(0)
 
     gpu_ctl = GpuCtl(gpu_devices=gpu_devices, fan=args.fan,
-                     delta=args.delta, temp=args.temp, tas=args.tas, 
+                     delta=args.delta, temp=args.temp, tas=args.tas,
                      rms=args.rms, rate=args.rate, ras=args.ras, curve=curve)
 
     if not gpu_ctl.set_interval(intvl=args.interval, temp=args.temp_cdown, rate=args.rate_cdown):
-        print(f'Interval error {args.interval}/{args.temp_cdown}/{args.rate_cdown} !\n')
+        print(
+            f'Interval error {args.interval}/{args.temp_cdown}/{args.rate_cdown} !\n')
         sys.exit(0)
 
     print(f"\ngpuctl: started\n")
     gpu_ctl.start()
+
 
 if __name__ == '__main__':
     run()

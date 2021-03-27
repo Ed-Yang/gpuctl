@@ -73,7 +73,7 @@ class GpuCtl():
 
     def _temp_action(self, gpu, t):
         if self.temp and t > self.temp:
-            logger.warning(f"[{gpu.pci_dev.slot_name}/{gpu.name}] temp: {t}c/{self.temp}c CD: {gpu.temp_cdown}")
+            logger.warning(f"[{gpu.pci_dev.slot_name}/{gpu.name}] temp: {t}c/{self.temp}c CD: {gpu.temp_cdown}s")
             gpu.temp_cdown -= self.interval
         else:
             gpu.temp_cdown = self.temp_cdown
@@ -104,7 +104,7 @@ class GpuCtl():
 
     def _rate_action(self, gpu, rate):
         if rate and self.rate and rate < self.rate:
-            logger.warning(f"[{gpu.pci_dev.slot_name}/{gpu.name}] rate: {rate}/{self.rate} CD: {gpu.rate_cdown}")
+            logger.warning(f"[{gpu.pci_dev.slot_name}/{gpu.name}] rate: {rate}/{self.rate} CD: {gpu.rate_cdown}s")
             gpu.rate_cdown -= self.interval
         else:
             gpu.rate_cdown = self.rate_cdown
@@ -140,8 +140,8 @@ class GpuCtl():
                 rate = self._get_hashrate(gpu, self.rms) if self.rms else None
                 self._rate_action(gpu, rate)
 
-                temp_str = f'temp: {t}/{gpu.temp_cdown}' if t else ''
-                rate_str = f'rate: {rate}/{gpu.rate_cdown}' if rate else ''
+                temp_str = f'temp: {t}/{gpu.temp_cdown}s' if t else ''
+                rate_str = f'rate: {rate}/{gpu.rate_cdown}s' if rate else ''
                 msg = temp_str + ' ' + rate_str
                 logger.debug(f"[{gpu.pci_dev.slot_name}/{gpu.name}] {msg}")
 
