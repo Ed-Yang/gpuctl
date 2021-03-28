@@ -36,6 +36,7 @@ class GpuAMD(GpuDev):
             GpuAMD.DRM_DIR) if len(c) <= 6]  # card##
 
         # locate card dir
+        self.hwmon_dir = None
         for card in card_dirs:
             ue_file = f'{GpuAMD.DRM_DIR}{card}/device/uevent'
             slot_name = fv.read_inifile_value('', ue_file, 'PCI_SLOT_NAME')

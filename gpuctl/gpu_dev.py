@@ -156,6 +156,7 @@ class GpuDev():
     def __init__(self, pcidev=None):
         # devices
         self.name = 'Other'
+        self.working = True
         self.dev_info = {}
         self.dev_info['bios_ver'] = ""
         self.pci_dev = pcidev

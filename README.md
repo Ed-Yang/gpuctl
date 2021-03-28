@@ -28,17 +28,6 @@ Ubuntu 18.4/Python3
     export NO_AT_BRIDGE=1
     ```
 
-    For running gpuctl in user mode (optional):
-
-    ```shell
-    sudo adduser <user> video
-
-    sudo chgrp video /sys/class/drm/<card-n>/device/hwmon/hwmon2/pwm1_enable
-    sudo chgrp video /sys/class/drm/<card-n>/device/hwmon/hwmon2/pwm1
-    sudo chmod g+w /sys/class/drm/<card-n>/device/hwmon/hwmon2/pwm1_enable
-    sudo chmod g+w /sys/class/drm/<card-n>/device/hwmon/hwmon2/pwm1
-    ```
-
 * Clone the source
 
     ```shell
@@ -188,9 +177,11 @@ Restart miner:
     ```
 
     ```shell
-    ID Slot Name    Vendor   PCI-ID      Temp. Fan 
-    -- ------------ -------- ----------- ----- ----
-    1 0000:01:00.0 AMD      [1002:67DF]   61c 47%
+    ID Slot Name    Vendor   PCI-ID      Temp. Fan  Working
+    -- ------------ -------- ----------- ----- ---- -------
+    1 0000:01:00.0 NVIDIA   [10DE:1C03]   31c   0% True
+    2 0000:0b:00.0 AMD      [1002:67DF]   46c  47% True
+    3 0000:0d:00.0 NVIDIA   [10DE:1C03]   30c   0% True
     ```
 
 * Example 2) For all of the GPUs, if its temperature is over 30c, then activate the fan speed control.
@@ -200,41 +191,23 @@ Restart miner:
     ```
 
     ```shell
-    ID Slot Name    Vendor   PCI-ID
-    -- ------------ -------- -----------
-    1 0000:01:00.0 AMD      [1002:67DF]
+    ID Slot Name    Vendor   PCI-ID      Temp. Fan  Working
+    -- ------------ -------- ----------- ----- ---- -------
+    1 0000:01:00.0 NVIDIA   [10DE:1C03]   31c   0% True
+    2 0000:0b:00.0 AMD      [1002:67DF]   45c  47% True
+    3 0000:0d:00.0 NVIDIA   [10DE:1C03]   30c   0% True
 
     gpuctl: started
 
-    12:02:20 INFO     [0000:01:00.0/AMD] current temp. 57c set speed 52%
-    12:03:39 INFO     [0000:01:00.0/AMD] current temp. 60c set speed 61%
+    01:41:02 INFO     [0000:01:00.0/NV ] current temp. 31c set speed 0%
+    01:41:03 INFO     [0000:0b:00.0/AMD] current temp. 45c set speed 3%
+    01:41:04 INFO     [0000:0d:00.0/NV ] current temp. 30c set speed 0%
     ```
 
 * Example 3) For every GPU, if its temeprature is over 50c, then activate fan control and if its temeprature is 55c for 5s, call restart script
 
     ```shell
     sudo gpuctl --fan 50 --temp 55 --tas ./scripts/restart.sh --temp-cdown 5
-    ```
-
-    ```shell
-    ID Slot Name    Vendor   PCI-ID
-    -- ------------ -------- -----------
-    1 0000:01:00.0 AMD      [1002:67DF]
-
-    gpuctl: started
-
-    03:50:36 INFO     [0000:01:00.0/AMD] current temp. 58c set speed 52%
-    03:50:36 WARNING  [0000:01:00.0/AMD] temp: 58c/55c CD: 5
-    03:50:37 WARNING  [0000:01:00.0/AMD] temp: 58c/55c CD: 4
-    03:50:38 WARNING  [0000:01:00.0/AMD] temp: 59c/55c CD: 3
-    03:50:39 WARNING  [0000:01:00.0/AMD] temp: 58c/55c CD: 2
-    03:50:40 WARNING  [0000:01:00.0/AMD] temp: 59c/55c CD: 1
-    03:50:41 INFO     [0000:01:00.0/AMD] over heat, exec script ./scripts/restart.sh
-    03:50:41 INFO     [0000:01:00.0/AMD] result: send restart command to slot=0000:01:00.0, port=3333
-    {"id":5,"jsonrpc":"2.0","result":true}
-
-    03:50:42 WARNING  [0000:01:00.0/AMD] temp: 56c/55c CD: 5
-    03:50:43 WARNING  [0000:01:00.0/AMD] temp: 57c/55c CD: 4
     ```
 
 * Example 4) For every GPU, if its temeprature is over 55c, or rate under 30000 Kh/s call restart script
@@ -249,16 +222,6 @@ Use ethminer as example:
     sudo gpuctl --temp 55 --tas ./scripts/restart.sh --rms ./scripts/rate.sh --rate 30000 --ras ./scripts/restart.sh
     ```
 
-    ```shell
-    03:45:38 WARNING  [0000:01:00.0/AMD] rate: 28564/30000 CD: 2
-    03:45:39 WARNING  [0000:01:00.0/AMD] temp: 60c/55c CD: 1
-    03:45:39 INFO     [0000:01:00.0/AMD] over heat, exec script ./scripts/restart.sh
-    03:45:39 INFO     [0000:01:00.0/AMD] result: send restart command to slot=0000:01:00.0, port=3333
-    {"id":5,"jsonrpc":"2.0","result":true}
-
-    03:45:40 WARNING  [0000:01:00.0/AMD] temp: 57c/55c CD: 120
-    03:45:42 ERROR    0000:01:00.0/AMD] get hashrate, exec script ./scripts/rate.sh failed !!
-    ```
 
 If the miner is rebooting, it might not be able to retrieve the hash rate for a few seconds.
 
@@ -269,9 +232,32 @@ If the miner is rebooting, it might not be able to retrieve the hash rate for a 
     ```
 
     ```shell
-    ID Slot Name    Vendor   PCI-ID      Temp. Fan 
-    -- ------------ -------- ----------- ----- ----
-    1 0000:01:00.0 AMD      [1002:67DF]   61c 47%
+    ID Slot Name    Vendor   PCI-ID      Temp. Fan  Working
+    -- ------------ -------- ----------- ----- ---- -------
+    1 0000:01:00.0 NVIDIA   [10DE:1C03]   31c  50% True
+    2 0000:0b:00.0 AMD      [1002:67DF]   47c  47% True
+    3 0000:0d:00.0 NVIDIA   [10DE:1C03]   30c  50% True
+    ```
+
+## User mode
+
+    For running gpuctl in user mode (optional):
+
+    ```shell
+    sudo adduser <user> video
+    ```
+
+    ```shell
+    # display cards
+    ls /sys/class/drm | grep "^card[[:digit:]]$"
+    ```
+
+    ```shell
+    # fill in correct <card-n> and <hwmon-n>
+    sudo chgrp video /sys/class/drm/<card-n>/device/hwmon/<hwmon-n>/pwm1_enable
+    sudo chgrp video /sys/class/drm/<card-n>/device/hwmon/<hwmon-n>/pwm1
+    sudo chmod g+w /sys/class/drm/<card-n>/device/hwmon/<hwmon-n>/pwm1_enable
+    sudo chmod g+w /sys/class/drm/<card-n>/device/hwmon/<hwmon-n>/pwm1
     ```
 
 * Run Test Cause

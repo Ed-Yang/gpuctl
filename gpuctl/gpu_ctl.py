@@ -171,6 +171,7 @@ class GpuCtl():
         logger.info("exit")
         self.abort = True
         self.thread.join()
+        nv.nvmlShutdown()
 
     def set_interval(self, intvl=None, temp=None, rate=None):
 

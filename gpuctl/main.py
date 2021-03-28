@@ -97,6 +97,7 @@ def run():
     # parse slot
     slots = None
     if args.slots:
+        # by slot
         slots = args.slots.split('/')
         for sn in slots:
             sn = sn.strip().lstrip()
@@ -110,31 +111,31 @@ def run():
             if gpu_dev and gpu_dev.is_gpu():
                 gpu_devices.append(gpu_dev)
                 slot_names.append(gpu_dev.pci_dev.slot_name)
+    else:
+        # by vendors
+        vendors = []
+        if args.amd:
+            vendors.append('AMD')
 
-    # by vendors
-    vendors = []
-    if args.amd:
-        vendors.append('AMD')
+        if args.nvidia:
+            vendors.append('NVIDIA')
 
-    if args.nvidia:
-        vendors.append('NVIDIA')
+        pci_devices = PciDev.discovery(vendors)
+        for pdev in pci_devices:
+            gpu_dev = None
+            if pdev and pdev.is_amd():
+                gpu_dev = GpuAMD(pdev)
+            if pdev and pdev.is_nvidia():
+                gpu_dev = GpuNV(pdev)
 
-    pci_devices = PciDev.discovery(vendors)
-    for pdev in pci_devices:
-        gpu_dev = None
-        if pdev and pdev.is_amd():
-            gpu_dev = GpuAMD(pdev)
-        if pdev and pdev.is_nvidia():
-            gpu_dev = GpuNV(pdev)
-
-        # remove duplicate gpu
-        if gpu_dev and gpu_dev.is_gpu() and pdev.slot_name not in slot_names:
-            gpu_devices.append(gpu_dev)
+            # remove duplicate gpu
+            if gpu_dev and gpu_dev.is_gpu() and pdev.slot_name not in slot_names:
+                gpu_devices.append(gpu_dev)
 
     # list monitored devices
     print("\n")
-    print("ID Slot Name    Vendor   PCI-ID      Temp. Fan ")
-    print("-- ------------ -------- ----------- ----- ----")
+    print("ID Slot Name    Vendor   PCI-ID      Temp. Fan  Working")
+    print("-- ------------ -------- ----------- ----- ---- -------")
 
     cnt = 1
     for gpu in gpu_devices:
@@ -143,7 +144,7 @@ def run():
         if args.set_speed != None:
             gpu.set_speed(args.set_speed)
         print(
-            f"{cnt:2} {pdev.slot_name} {pdev.vendor_name():8} [{pdev.vendor_id}:{pdev.device_id}] {gpu.get_temperature():4}c {gpu.get_speed()}%")
+            f"{cnt:2} {pdev.slot_name} {pdev.vendor_name():8} [{pdev.vendor_id}:{pdev.device_id}] {gpu.get_temperature():4}c {gpu.get_speed():3}% {gpu.working}")
         cnt += 1
 
     if args.list:
@@ -155,6 +156,8 @@ def run():
     if len(gpu_devices) == 0:
         print('No GPU found, abort !\n')
         sys.exit(0)
+
+    # remove not working devices
 
     gpu_ctl = GpuCtl(gpu_devices=gpu_devices, fan=args.fan,
                      delta=args.delta, temp=args.temp, tas=args.tas,

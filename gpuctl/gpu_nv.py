@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-import  pynvml as nv
+import pynvml as nv
 
 from gpuctl import logger, DRYRUN
 from gpuctl import FileVarMixn as fv
@@ -9,6 +9,7 @@ from gpuctl import ShellCmdMixin as sc
 from . gpu_dev import PciDev, GpuDev
 
 __all__ = ['GpuNV']
+
 
 class GpuNV(GpuDev):
 
@@ -23,55 +24,60 @@ class GpuNV(GpuDev):
         """
         self.nvh = None
         self.display = ':0'
+        self.gpu_flag = False
 
         INFO_PATH = "/proc/driver/nvidia/gpus/"
         super(GpuNV, self).__init__(pcidev)
 
         nv.nvmlInit()
-        deviceCount = nv.nvmlDeviceGetCount()
-        for i in range(deviceCount):
-            handle = nv.nvmlDeviceGetHandleByIndex(i)
-            info = nv.nvmlDeviceGetPciInfo(handle)
-            domain, bus_id, slot_id, function = PciDev.parse_slot_name(
-                info.busId.decode('utf-8'))
-            if bus_id == self.pci_dev.bus_id and \
-               slot_id == self.pci_dev.slot_id and \
-               function == self.pci_dev.function:
-                ver = nv.nvmlSystemGetDriverVersion().decode('utf-8')
-                name = nv.nvmlDeviceGetName(handle).decode('utf-8')
-                logger.debug(f"NV[{i}]: Device {name} Driver {ver}")
-                self.nv_id = i
-                self.nvh = handle
-                self.name = 'NV '
-                break
+
+        self.nvh = None
+        self.name = 'NV '
+        try:
+            self.nvh = nv.nvmlDeviceGetHandleByPciBusId(
+                pcidev.slot_name.encode())
+            self.nv_id = nv.nvmlDeviceGetIndex(self.nvh)
+            self.gpu_flag = True
+        except Exception as e:
+            if e.value == nv.NVML_ERROR_GPU_IS_LOST:
+                self.gpu_flag = True
+            self.working = False
+            logger.debug(f'[{self.pci_dev.slot_name}/{self.name}] {str(e)}')
 
         self.curve = GpuNV.CURVE
         self.temp_delta = GpuNV.TEMP_DELTA
 
     def is_gpu(self):
-        return True if self.nvh else False
+        return True if self.gpu_flag == True else False
 
     def set_speed(self, speed):
 
         if DRYRUN:
             return
 
+        if not self.working or self.nvh == None:
+            return
+
         cmd = f"nvidia-settings -c {self.display} -a [gpu:{self.nv_id}]/GPUFanControlState=1 -a [fan:{self.nv_id}]/GPUTargetFanSpeed={speed}"
         logger.debug(f'exec: {cmd}')
         try:
             sc.exec_cmd(cmd)
-            logger.debug(f'[{self.pci_dev.slot_name}/{self.name}] set speed {speed}%')
+            logger.debug(
+                f'[{self.pci_dev.slot_name}/{self.name}] set speed {speed}%')
             self.speed = speed
         except:
             logger.error(f'exec_cmd: {cmd} failed !!')
 
-
     def get_speed(self):
         # TODO: nvmlDeviceGetFanSpeed report wrong speed, so return store value
         # s = nv.nvmlDeviceGetFanSpeed(self.nvh)
+        if not self.working or self.nvh == None:
+            return 0
         s = self.speed
         return s
 
     def get_temperature(self):
+        if not self.working or self.nvh == None:
+            return 0
         t = nv.nvmlDeviceGetTemperature(self.nvh, nv.NVML_TEMPERATURE_GPU)
         return t

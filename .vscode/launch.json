@@ -16,6 +16,21 @@
             }
         },
         {
+            "name": "gpuctl: list",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/gpuctl/main.py",
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal",
+            "args": [
+                "--list",
+                "-v"
+            ],
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}"
+            }
+        },
+        {
             "name": "gpuctl: basic",
             "type": "python",
             "request": "launch",
@@ -36,7 +51,8 @@
             "program": "${workspaceFolder}/gpuctl/main.py",
             "console": "integratedTerminal",
             "args": [
-                "--slots", "0000:0a:00.0", "--list"
+                "--slots", "0000:01:00.0", 
+                "--set-speed", "50"
             ],
             "env": {
                 "PYTHONPATH": "${workspaceFolder}"

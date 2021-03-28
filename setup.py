@@ -7,7 +7,7 @@ with open('README.md') as f:
 
 setup(
     name='gpuctl',
-    version='0.1',
+    version='0.2',
     packages=find_packages(),
     url='https://github.com/Ed-Yang/gpuctl',
     license='MIT',
