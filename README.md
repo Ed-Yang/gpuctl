@@ -31,7 +31,7 @@ Ubuntu 18.4/Python3
 * Clone the source
 
     ```shell
-    https://github.com/Ed-Yang/gpuctl
+    git clone https://github.com/Ed-Yang/gpuctl
     ```
 
     Setup Python vitual environment:
@@ -63,9 +63,10 @@ gpuctl instance with expected parametets.
 
     ```shell
     usage: gpuctl [-h] [-l] [-s SLOTS] [-a] [-n] [--interval INTERVAL]
-                [--set-speed [0-100]] [-f FAN] [-d DELTA] [--temp TEMP]
-                [--temp-cdown TEMP_CDOWN] [--tas TAS] [--rms RMS] [--rate RATE]
-                [--rate-cdown RATE_CDOWN] [--ras RAS] [--curve CURVE] [-v]
+                [--set-speed [0-100]] [-f FAN] [-d DELTA] [--las LAS]
+                [--temp TEMP] [--temp-cdown TEMP_CDOWN] [--tas TAS] [--rms RMS]
+                [--rate RATE] [--rate-cdown RATE_CDOWN] [--ras RAS]
+                [--curve CURVE] [-v]
 
     optional arguments:
     -h, --help            show this help message and exit
@@ -82,6 +83,7 @@ gpuctl instance with expected parametets.
     -d DELTA, --delta DELTA
                             set fan speed if temperature diff % is over DELTA
                             (defaut:2)
+    --las LAS             gpu lost action script
     --temp TEMP           over temperature action threshold
     --temp-cdown TEMP_CDOWN
                             over temperature count down
@@ -237,6 +239,12 @@ If the miner is rebooting, it might not be able to retrieve the hash rate for a 
     1 0000:01:00.0 NVIDIA   [10DE:1C03]   31c  50% True
     2 0000:0b:00.0 AMD      [1002:67DF]   47c  47% True
     3 0000:0d:00.0 NVIDIA   [10DE:1C03]   30c  50% True
+    ```
+
+* Example 6) If one of GPU(s) failed, halt system and schedule wakeup
+
+    ```shell
+    sudo gpuctl --las ./scripts/gpu-failure.sh -v
     ```
 
 ## User mode

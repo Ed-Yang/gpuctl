@@ -29,7 +29,7 @@ class GpuCtl():
 
         # overwrite default value with arguments
         valid_keys = ["slots", "gpu_devices",
-                      "fan", "delta", "temp", "tas", "rms", "rate", "ras", "curve"]
+                      "fan", "delta", "temp", "tas", "rms", "rate", "ras", "las", "curve"]
         for key in valid_keys:
             setattr(self, key, kwargs.get(key))
 
@@ -77,6 +77,7 @@ class GpuCtl():
                 try:
                     rv = sc.exec_script(self.las, params=gpu.pci_dev.slot_name)
                     logger.info(f"[{gpu.pci_dev.slot_name}/{gpu.name}] gpu failure, exec script {self.las}")
+                    time.sleep(5) # wait 5s
                 except:
                     logger.error(f"{gpu.pci_dev.slot_name}/{gpu.name}] gpu failure, exec script {self.las} failed !!")
             else:
