@@ -14,6 +14,9 @@ class GpuOk(GpuDev):
     def is_gpu(self):
         return True
 
+    def is_working(self):
+        return True
+
     def get_temperature(self):
         return 30
 
@@ -22,6 +25,9 @@ class GpuOk(GpuDev):
 
 class GpuNak(GpuDev):
     def is_gpu(self):
+        return True
+
+    def is_working(self):
         return True
 
     def get_temperature(self):

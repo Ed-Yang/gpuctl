@@ -42,19 +42,19 @@ class GpuNV(GpuDev):
         except Exception as e:
             if e.value == nv.NVML_ERROR_GPU_IS_LOST:
                 self.gpu_flag = True
-            self.working = False
             logger.debug(f'[{self.pci_dev.slot_name}/{self.name}] {str(e)}')
 
         self.curve = GpuNV.CURVE
         self.temp_delta = GpuNV.TEMP_DELTA
 
     def is_working(self):
+        rv = True
         try:
             h = nv.nvmlDeviceGetHandleByPciBusId(
                 self.pcidev.slot_name.encode())
         except Exception as e:
-            self.working = False
-        return self.working
+            rv = False
+        return rv
 
     def is_gpu(self):
         return True if self.gpu_flag == True else False
@@ -64,7 +64,7 @@ class GpuNV(GpuDev):
         if DRYRUN:
             return
 
-        if not self.working or self.nvh == None:
+        if self.nvh == None:
             return
 
         cmd = f"nvidia-settings -c {self.display} -a [gpu:{self.nv_id}]/GPUFanControlState=1 -a [fan:{self.nv_id}]/GPUTargetFanSpeed={speed}"
@@ -75,18 +75,23 @@ class GpuNV(GpuDev):
                 f'[{self.pci_dev.slot_name}/{self.name}] set speed {speed}%')
             self.speed = speed
         except:
-            logger.error(f'exec_cmd: {cmd} failed !!')
+            logger.error(f"{self.pci_dev.slot_name}/{self.name}] set fan speed failed !!")
 
     def get_speed(self):
         # TODO: nvmlDeviceGetFanSpeed report wrong speed, so return store value
         # s = nv.nvmlDeviceGetFanSpeed(self.nvh)
-        if not self.working or self.nvh == None:
+        if self.nvh == None:
             return 0
         s = self.speed
         return s
 
     def get_temperature(self):
-        if not self.working or self.nvh == None:
+        if self.nvh == None:
             return 0
-        t = nv.nvmlDeviceGetTemperature(self.nvh, nv.NVML_TEMPERATURE_GPU)
+        try:
+            t = nv.nvmlDeviceGetTemperature(self.nvh, nv.NVML_TEMPERATURE_GPU)
+        except:
+            logger.error(f"{self.pci_dev.slot_name}/{self.name}] get temperature failed !!")
+            t = None
+
         return t

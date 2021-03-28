@@ -139,16 +139,20 @@ class GpuCtl():
     def _gpu_thread(self):
         while self.abort != True:
             for gpu in self.gpu_devices:
+
                 time.sleep(self.interval)
+
+                # gpu failure
+                self._failure_action(gpu)
+
                 t = gpu.get_temperature()
+                if t == None:
+                    continue
 
                 # fan speed
                 self._fan_control(gpu, t)
 
                 # action scripts
-
-                # gpu failure
-                self._failure_action(gpu)
 
                 # temp
                 self._temp_action(gpu, t)
