@@ -71,6 +71,18 @@ class GpuCtl():
             gpu.set_speed(speed)
             gpu.prev_temp = t
 
+    def _failure_action(self, gpu):
+        if gpu.is_working() == False:
+            if self.las:
+                try:
+                    rv = sc.exec_script(self.las, params=gpu.pci_dev.slot_name)
+                    logger.info(f"[{gpu.pci_dev.slot_name}/{gpu.name}] gpu failure, exec script {self.las}")
+                except:
+                    logger.error(f"{gpu.pci_dev.slot_name}/{gpu.name}] gpu failure, exec script {self.las} failed !!")
+            else:
+                logger.warning(f"[{gpu.pci_dev.slot_name}/{gpu.name}] gpu failure, no action script defined")
+
+
     def _temp_action(self, gpu, t):
         if self.temp and t > self.temp:
             logger.warning(f"[{gpu.pci_dev.slot_name}/{gpu.name}] temp: {t}c/{self.temp}c CD: {gpu.temp_cdown}s")
@@ -134,6 +146,11 @@ class GpuCtl():
                 self._fan_control(gpu, t)
 
                 # action scripts
+
+                # gpu failure
+                self._failure_action(gpu)
+
+                # temp
                 self._temp_action(gpu, t)
 
                 # rate

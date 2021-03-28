@@ -61,6 +61,9 @@ class GpuAMD(GpuDev):
     def is_gpu(self):
         return True if self.card else False
 
+    def is_working(self):
+        return True
+        
     def set_speed(self, speed):
         """
         speed: 0~100 (percentage)

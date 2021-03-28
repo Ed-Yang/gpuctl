@@ -176,6 +176,9 @@ class GpuDev():
     def is_gpu(self):
         raise NotImplementedError
 
+    def is_working(self):
+        raise NotImplementedError
+
     def get_temperature(self):
         raise NotImplementedError
 

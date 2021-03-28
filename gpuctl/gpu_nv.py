@@ -38,6 +38,7 @@ class GpuNV(GpuDev):
                 pcidev.slot_name.encode())
             self.nv_id = nv.nvmlDeviceGetIndex(self.nvh)
             self.gpu_flag = True
+            self.pcidev = pcidev
         except Exception as e:
             if e.value == nv.NVML_ERROR_GPU_IS_LOST:
                 self.gpu_flag = True
@@ -46,6 +47,14 @@ class GpuNV(GpuDev):
 
         self.curve = GpuNV.CURVE
         self.temp_delta = GpuNV.TEMP_DELTA
+
+    def is_working(self):
+        try:
+            h = nv.nvmlDeviceGetHandleByPciBusId(
+                self.pcidev.slot_name.encode())
+        except Exception as e:
+            self.working = False
+        return self.working
 
     def is_gpu(self):
         return True if self.gpu_flag == True else False

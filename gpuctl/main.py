@@ -44,6 +44,9 @@ def run():
     parser.add_argument('-d', '--delta', type=int, default=2,
                         help="set fan speed if temperature diff %% is over DELTA (defaut:2)")
 
+    # gpu lost failure detection
+    parser.add_argument('--las', type=str, help="gpu lost action script")
+
     # temperature monitoring/actions
     parser.add_argument('--temp', type=int,
                         help="over temperature action threshold")
@@ -160,7 +163,9 @@ def run():
     # remove not working devices
 
     gpu_ctl = GpuCtl(gpu_devices=gpu_devices, fan=args.fan,
-                     delta=args.delta, temp=args.temp, tas=args.tas,
+                     delta=args.delta, 
+                     las=args.las,
+                     temp=args.temp, tas=args.tas,
                      rms=args.rms, rate=args.rate, ras=args.ras, curve=curve)
 
     if not gpu_ctl.set_interval(intvl=args.interval, temp=args.temp_cdown, rate=args.rate_cdown):
