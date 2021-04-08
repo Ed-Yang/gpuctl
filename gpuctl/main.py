@@ -8,6 +8,10 @@ import logging
 from gpuctl import DRYRUN, GpuCtl, logger
 from gpuctl import PciDev, GpuDev, GpuAMD, GpuNV
 
+from gpuctl import MinerCtl, scan_miner
+
+def show_net_stats():
+    cmd = "lsof -i -P -n | grep -E 'miner|Miner' | grep LISTEN"
 
 def run():
 
@@ -66,6 +70,10 @@ def run():
     parser.add_argument('--curve', type=str,
                         help="set temp/fan-speed curve (ie. 0:0/10:10/80:100)")
 
+    # remote management
+    parser.add_argument('--scan', action='store_true',
+                        help="scan miner's info through network management api")
+
     # misc
     parser.add_argument('-v', '--verbose',
                         action='store_true', help="show debug message")
@@ -75,6 +83,22 @@ def run():
 
     if args.verbose:
         logger.setLevel(logging.DEBUG)
+
+    if args.scan:
+        # 12, 8, 4, 4, 
+        ports = scan_miner()
+        for addr, port in ports:
+            minerctl = MinerCtl(addr, port)
+            r = minerctl.get_stats()
+            print(f"Miner : {r['miner']:12}")
+            print(f"Uptime: {r['uptime']}s")
+            print(f"Rate(kh) Temp Fan  ")
+            print(f"======== ==== ==== ")
+            for i in range(len(r['temp'])):
+                print(f"{r['rate'][i]:8} {r['temp'][i]:3}c {r['fan'][i]:3}%")
+            print('')
+                
+        sys.exit(0)
 
     # parse curve
     curve = None

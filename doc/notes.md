@@ -65,15 +65,30 @@ Section "Device"
     Option          "AllowEmptyInitialConfiguration" "true"
 ```
 
+Get fan speed:
+
+```shell
+nvidia-settings -t -q  [fan:0]/GPUTargetFanSpeed
+```
+
+Set fan speed:
+
 ```shell
 nvidia-settings -c :0 -a [gpu:0]/GPUFanControlState=1 -a [fan:0]/GPUTargetFanSpeed=0
 ```
+
 
 ```shell
 sudo watch -c -n 2 nvidia-info
 ```
 
 ## Remote manaagement
+
+* List miner
+
+    ```shell
+    lsof -i -P -n | grep -E 'miner|Phoenix' | grep LISTEN
+    ```
 
 * Get statistics
 

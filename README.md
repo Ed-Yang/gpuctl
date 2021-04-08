@@ -247,6 +247,30 @@ If the miner is rebooting, it might not be able to retrieve the hash rate for a 
     sudo gpuctl --las ./scripts/gpu-failure.sh -v
     ```
 
+* Example 7) Get miner's info through network management API
+
+    ```shell
+    gpuctl --scan
+    ```
+
+    ```shell
+    Miner : nsfminer-1.3.9-8+commit.4b250d6b.dirty
+    Uptime: 1080s
+    Rate(kh) Temp Fan  
+    ======== ==== ==== 
+    19143  68c   0%
+    Miner : nsfminer-1.3.9-8+commit.4b250d6b.dirty
+    Uptime: 1080s
+    Rate(kh) Temp Fan  
+    ======== ==== ==== 
+    28340  66c  47%
+    Miner : nsfminer-1.3.9-8+commit.4b250d6b.dirty
+    Uptime: 1020s
+    Rate(kh) Temp Fan  
+    ======== ==== ==== 
+    19963  48c   0%
+    ```
+
 ## User mode
 
     For running gpuctl in user mode (optional):
@@ -261,11 +285,11 @@ If the miner is rebooting, it might not be able to retrieve the hash rate for a 
     ```
 
     ```shell
-    # fill in correct <card-n> and <hwmon-n>
-    sudo chgrp video /sys/class/drm/<card-n>/device/hwmon/<hwmon-n>/pwm1_enable
-    sudo chgrp video /sys/class/drm/<card-n>/device/hwmon/<hwmon-n>/pwm1
-    sudo chmod g+w /sys/class/drm/<card-n>/device/hwmon/<hwmon-n>/pwm1_enable
-    sudo chmod g+w /sys/class/drm/<card-n>/device/hwmon/<hwmon-n>/pwm1
+    # fill in correct <card-n> and <hwmon-m>
+    sudo chgrp video /sys/class/drm/<card-n>/device/hwmon/<hwmon-m>/pwm1_enable
+    sudo chgrp video /sys/class/drm/<card-n>/device/hwmon/<hwmon-m>/pwm1
+    sudo chmod g+w /sys/class/drm/<card-n>/device/hwmon/<hwmon-m>/pwm1_enable
+    sudo chmod g+w /sys/class/drm/<card-n>/device/hwmon/<hwmon-m>/pwm1
     ```
 
 * Run Test Cause
@@ -316,6 +340,7 @@ If the miner is rebooting, it might not be able to retrieve the hash rate for a 
 ## Reference
 
 * [Fan controller for amdgpus](https://github.com/chestm007/amdgpu-fan.git)
+* [Ethminer's API](https://github.com/ethereum-mining/ethminer/blob/master/docs/API_DOCUMENTATION.md#list-of-requests)
 * [GPUFan](https://github.com/milani/gpufan)
 * [PyOpenCL Samples](https://github.com/virus-warnning/pyopencl_samples)
 * [Associating OpenCL device ids with GPUs](https://anteru.net/blog/2014/associating-opencl-device-ids-with-gpus/)
