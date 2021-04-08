@@ -147,8 +147,8 @@ The following exapmple setup a netowrk management port on TCP port 3333.
 
 * Ethminer/nsfminer, additional parameters:
 
-    --api-bind 127.0.0.1:3333 or
-    --api-port -3333 
+    --HWMON 2 --api-bind 127.0.0.1:3333 or
+    --HWMON 2 --api-port -3333 
 
 * Phoenixminer, additional parameters ([check section 3](https://bitcointalk.org/index.php?topic=2647654.0)):
 
@@ -217,7 +217,7 @@ Restart miner:
 Use ethminer as example:
 
     ```shell
-    ethminer -G --api-port 3333 -P ....
+    ethminer -G --HWMON 2 --api-port 3333 -P ....
     ```
 
     ```shell
@@ -249,8 +249,10 @@ If the miner is rebooting, it might not be able to retrieve the hash rate for a 
 
 * Example 7) Get miner's info through network management API
 
+    If the miner is running in user mode, it can execute the script command without "sudo".
+
     ```shell
-    gpuctl --scan
+    sudo gpuctl --scan
     ```
 
     ```shell
