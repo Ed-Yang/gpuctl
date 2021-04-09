@@ -90,6 +90,8 @@ def run():
         for addr, port in ports:
             minerctl = MinerCtl(addr, port)
             r = minerctl.get_stats()
+            if r == None:
+                continue
             print(f"Miner : {r['miner']:12}")
             print(f"Uptime: {r['uptime']}s")
             print(f"Rate(kh) Temp Fan  ")
