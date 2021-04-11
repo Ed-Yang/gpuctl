@@ -49,7 +49,7 @@ Ubuntu 18.4/Python3
     pip install .
     ```
 
-    After completed the above procedure, before you run the gpuctl, you need to to run only:
+    After completed the above procedure, before you run the gpuctl, you only need to to run:
 
     ```shell
     source ./venv/bin/activate
@@ -57,7 +57,7 @@ Ubuntu 18.4/Python3
 
 ### Usage
 
-Some parameters are applying to every GPU on ststem (like interval, curve, etc.),
+Some parameters are applying to every GPU on whole system (like interval, curve, etc.),
 if it is necessary to provide specific setting for a GPU, it is able to run seperate
 gpuctl instance with expected parametets.
 
@@ -66,7 +66,7 @@ gpuctl instance with expected parametets.
                 [--set-speed [0-100]] [-f FAN] [-d DELTA] [--las LAS]
                 [--temp TEMP] [--temp-cdown TEMP_CDOWN] [--tas TAS] [--rms RMS]
                 [--rate RATE] [--rate-cdown RATE_CDOWN] [--ras RAS]
-                [--curve CURVE] [-v]
+                [--curve CURVE] [--scan] [-v]
 
     optional arguments:
     -h, --help            show this help message and exit
@@ -94,6 +94,7 @@ gpuctl instance with expected parametets.
                             under rate count down
     --ras RAS             under rate action script
     --curve CURVE         set temp/fan-speed curve (ie. 0:0/10:10/80:100)
+    --scan                scan miner's info through network management api
     -v, --verbose         show debug message
     ```
 
@@ -179,11 +180,11 @@ Restart miner:
     ```
 
     ```shell
-    ID Slot Name    Vendor   PCI-ID      Temp. Fan  Working
-    -- ------------ -------- ----------- ----- ---- -------
-    1 0000:01:00.0 NVIDIA   [10DE:1C03]   31c   0% True
-    2 0000:0b:00.0 AMD      [1002:67DF]   46c  47% True
-    3 0000:0d:00.0 NVIDIA   [10DE:1C03]   30c   0% True
+    ID Slot Name    Vendor   PCI-ID      Temp. Fan  PWR    Working
+    -- ------------ -------- ----------- ----- ---- ------ -------
+    1 0000:01:00.0 NVIDIA   [10DE:1C03]  54c  10%  73.63w True
+    2 0000:0b:00.0 AMD      [1002:67DF]  61c  60%  80.00w True
+    3 0000:0d:00.0 NVIDIA   [10DE:1C03]  47c   0%  76.18w True
     ```
 
 * Example 2) For all of the GPUs, if its temperature is over 30c, then activate the fan speed control.
@@ -193,17 +194,17 @@ Restart miner:
     ```
 
     ```shell
-    ID Slot Name    Vendor   PCI-ID      Temp. Fan  Working
-    -- ------------ -------- ----------- ----- ---- -------
-    1 0000:01:00.0 NVIDIA   [10DE:1C03]   31c   0% True
-    2 0000:0b:00.0 AMD      [1002:67DF]   45c  47% True
-    3 0000:0d:00.0 NVIDIA   [10DE:1C03]   30c   0% True
+    ID Slot Name    Vendor   PCI-ID      Temp. Fan  PWR    Working
+    -- ------------ -------- ----------- ----- ---- ------ -------
+    1 0000:01:00.0 NVIDIA   [10DE:1C03]  54c  60%  73.72w True
+    2 0000:0b:00.0 AMD      [1002:67DF]  61c  60%  80.00w True
+    3 0000:0d:00.0 NVIDIA   [10DE:1C03]  47c  60%  75.49w True
 
     gpuctl: started
 
-    01:41:02 INFO     [0000:01:00.0/NV ] current temp. 31c set speed 0%
-    01:41:03 INFO     [0000:0b:00.0/AMD] current temp. 45c set speed 3%
-    01:41:04 INFO     [0000:0d:00.0/NV ] current temp. 30c set speed 0%
+    02:11:53 INFO     [0000:01:00.0/NV ] current temp. 54c set speed 10%
+    02:11:55 INFO     [0000:0b:00.0/AMD] current temp. 61c set speed 61%
+    02:11:56 INFO     [0000:0d:00.0/NV ] current temp. 47c set speed 0%
     ```
 
 * Example 3) For every GPU, if its temeprature is over 50c, then activate fan control and if its temeprature is 55c for 5s, call restart script
@@ -234,11 +235,11 @@ If the miner is rebooting, it might not be able to retrieve the hash rate for a 
     ```
 
     ```shell
-    ID Slot Name    Vendor   PCI-ID      Temp. Fan  Working
-    -- ------------ -------- ----------- ----- ---- -------
-    1 0000:01:00.0 NVIDIA   [10DE:1C03]   31c  50% True
-    2 0000:0b:00.0 AMD      [1002:67DF]   47c  47% True
-    3 0000:0d:00.0 NVIDIA   [10DE:1C03]   30c  50% True
+    ID Slot Name    Vendor   PCI-ID      Temp. Fan  PWR    Working
+    -- ------------ -------- ----------- ----- ---- ------ -------
+    1 0000:01:00.0 NVIDIA   [10DE:1C03]  54c  50%  73.74w True
+    2 0000:0b:00.0 AMD      [1002:67DF]  61c  47%  80.00w True
+    3 0000:0d:00.0 NVIDIA   [10DE:1C03]  47c  50%  73.87w True
     ```
 
 * Example 6) If one of GPU(s) failed, halt system and schedule wakeup
@@ -250,6 +251,8 @@ If the miner is rebooting, it might not be able to retrieve the hash rate for a 
 * Example 7) Get miner's info through network management API
 
     If the miner is running in user mode, it can execute the script command without "sudo".
+
+    Note, miner might not report correct current fan speed.
 
     ```shell
     sudo gpuctl --scan
@@ -305,12 +308,14 @@ If the miner is rebooting, it might not be able to retrieve the hash rate for a 
 * Monitor AMD GPU card
 
     ```shell
+    # HiveOS
     sudo watch -c -n 2 amd-info
     ```
 
 * Monitor Nvidia GPU card
 
     ```shell
+    # HiveOS
     sudo watch -c -n 2 nvidia-info
     ```
 
