@@ -19,6 +19,8 @@ setup(
     keywords='gpu amd nvidia ai pytorch tensorflow torch mining ethereum bitcoin cryptocurrency ethminer nsfminer phoenixminer',
     python_requires='>=3',
     install_requires=[
+        'setuptools',
+        'wheel',
         'pynvml'
     ],
     entry_points="""
