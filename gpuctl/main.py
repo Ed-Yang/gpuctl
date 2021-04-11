@@ -161,8 +161,8 @@ def run():
 
     # list monitored devices
     print("\n")
-    print("ID Slot Name    Vendor   PCI-ID      Temp. Fan  Working")
-    print("-- ------------ -------- ----------- ----- ---- -------")
+    print("ID Slot Name    Vendor   PCI-ID      Temp. Fan  PWR    Working")
+    print("-- ------------ -------- ----------- ----- ---- ------ -------")
 
     cnt = 1
     for gpu in gpu_devices:
@@ -171,8 +171,9 @@ def run():
         if args.set_speed != None:
             gpu.set_speed(args.set_speed)
         working = gpu.is_working()
-        print(
-            f"{cnt:2} {pdev.slot_name} {pdev.vendor_name():8} [{pdev.vendor_id}:{pdev.device_id}] {gpu.get_temperature():4}c {gpu.get_speed():3}% {working}")
+        msg  = f"{cnt:2} {pdev.slot_name} {pdev.vendor_name():8} [{pdev.vendor_id}:{pdev.device_id}]"
+        msg += f"{gpu.get_temperature():4}c {gpu.get_speed():3}% {gpu.get_pwr():6.2f}w {working}"
+        print(msg)
         cnt += 1
 
     if args.list:

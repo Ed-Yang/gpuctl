@@ -97,8 +97,20 @@ class GpuNV(GpuDev):
             return 0
         try:
             t = nv.nvmlDeviceGetTemperature(self.nvh, nv.NVML_TEMPERATURE_GPU)
+            self.temperature = t
         except:
             logger.error(f"{self.pci_dev.slot_name}/{self.name}] get temperature failed !!")
-            t = None
-
+            t = 0
         return t
+
+    def get_pwr(self):
+        if self.nvh == None:
+            return 0
+        try:
+            pwr = nv.nvmlDeviceGetPowerUsage(self.nvh)/1000
+            self.pwr = pwr
+        except:
+            logger.error(f"{self.pci_dev.slot_name}/{self.name}] get pwr failed !!")
+            pwr = 0
+
+        return pwr

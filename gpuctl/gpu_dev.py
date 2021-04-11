@@ -181,6 +181,9 @@ class GpuDev():
     def get_temperature(self):
         raise NotImplementedError
 
+    def get_pwr(self):
+        raise NotImplementedError
+
     def get_speed(self, percentage):
         raise NotImplementedError
 

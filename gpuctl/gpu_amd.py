@@ -18,6 +18,7 @@ class GpuAMD(GpuDev):
     PWM_MODE = 'pwm1_enable'
     PWM_VAL = 'pwm1'
     TEMP_VAL = 'temp1_input'
+    PWR_VAL = 'power1_average'
 
     CURVE = [[0, 0], [40, 0], [50, 30], [55, 50], [60, 60], [
         70, 70], [75, 80], [80, 100], [100, 100]]
@@ -68,7 +69,7 @@ class GpuAMD(GpuDev):
         """
         speed: 0~100 (percentage)
         """
-        # hwmon_dir = f'{GpuAMD.DRM_DIR}{self.card}/device/hwmon/hwmon2/'
+        # hwmon_dir = f'{GpuAMD.DRM_DIR}{self.card}/device/hwmon/hwmon?/'
         speed = 100 if speed > 100 else speed
         speed = 0 if speed < 0 else speed
         pwm = int((self.max - self.min) * speed / 100)
@@ -84,9 +85,13 @@ class GpuAMD(GpuDev):
         return speed
 
     def get_temperature(self):
-        # hwmon_dir = f'{GpuAMD.DRM_DIR}{self.card}/device/hwmon/hwmon2/'
+        # hwmon_dir = f'{GpuAMD.DRM_DIR}{self.card}/device/hwmon/hwmon?/'
         temp = int(fv.read_file_value(self.hwmon_dir, GpuAMD.TEMP_VAL) / 1000)
         self.temperature = temp
         return temp
 
+    def get_pwr(self):
+        pwr = int(fv.read_file_value(self.hwmon_dir, GpuAMD.PWR_VAL) / 1000000)
+        self.pwr = pwr
+        return pwr
 
