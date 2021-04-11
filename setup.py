@@ -1,5 +1,4 @@
-from distutils.core import setup
-
+from setuptools import setup
 from setuptools import find_packages
 
 with open('README.md') as f:
@@ -7,10 +6,10 @@ with open('README.md') as f:
 
 setup(
     name='gpuctl',
-    version='0.3.2',
+    version='0.3.3',
     packages=find_packages(),
     url='https://github.com/Ed-Yang/gpuctl',
-    download_url='https://github.com/Ed-Yang/gpuctl/archive/refs/tags/v0.3.2.tar.gz',
+    download_url='https://github.com/Ed-Yang/gpuctl/archive/refs/tags/v0.3.3.tar.gz',
     license='MIT',
     author='Edward Yang',
     author_email='edwardyangyang@hotmail.com',
