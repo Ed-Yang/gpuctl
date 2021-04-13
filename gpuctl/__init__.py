@@ -32,5 +32,5 @@ __all__ += gpu_mock.__all__
 from . gpu_ctl import *
 __all__ += gpu_ctl.__all__
 
-from . miner_ctl import *
+from . eth_ctl import *
 __all__ += gpu_ctl.__all__

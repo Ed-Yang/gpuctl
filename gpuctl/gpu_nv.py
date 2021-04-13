@@ -81,26 +81,26 @@ class GpuNV(GpuDev):
         # NOTE: nvmlDeviceGetFanSpeed report wrong speed, use nvidia-settings instead
         # s = nv.nvmlDeviceGetFanSpeed(self.nvh)
         cmd = f"nvidia-settings -t -q  [fan:{self.nv_id}]/GPUTargetFanSpeed"
-        logger.debug(f'exec: {cmd}')
+        # logger.debug(f'exec: {cmd}')
         speed = 0
         try:
             s = sc.exec_cmd(cmd)
             speed = int(s)
-            logger.debug(
-                f'[{self.pci_dev.slot_name}/{self.name}] speed {speed}%')
+            # logger.debug(
+            #     f'[{self.pci_dev.slot_name}/{self.name}] speed {speed}%')
         except:
             logger.error(f"{self.pci_dev.slot_name}/{self.name}] get fan speed failed !!")
         return speed
 
     def get_temperature(self):
         if self.nvh == None:
-            return 0
+            return None
         try:
             t = nv.nvmlDeviceGetTemperature(self.nvh, nv.NVML_TEMPERATURE_GPU)
             self.temperature = t
         except:
             logger.error(f"{self.pci_dev.slot_name}/{self.name}] get temperature failed !!")
-            t = 0
+            t = None
         return t
 
     def get_pwr(self):

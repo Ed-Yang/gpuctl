@@ -20,16 +20,15 @@ __all__ = ['GpuCtl']
 class GpuCtl():
 
     INTERVAL = 1
-    TEMP_CDOWN = 120 # seconds
-    RATE_CDOWN = 120 # seconds
+    WAIT_PERIOD = 60
 
     def __init__(self, **kwargs):
 
         self.vendors = None
 
         # overwrite default value with arguments
-        valid_keys = ["slots", "gpu_devices",
-                      "fan", "delta", "temp", "tas", "rms", "rate", "ras", "las", "curve"]
+        valid_keys = ["slots", "gpu_devices", 
+                      "fan", "curve", "delta", "temp", "tas", "verbose"]
         for key in valid_keys:
             setattr(self, key, kwargs.get(key))
 
@@ -41,18 +40,16 @@ class GpuCtl():
             for gpu_dev in self.gpu_devices:
                 gpu_dev.set_curve(self.curve)
             
+        # temp
+        self.gpu_dict = {}
+
         # fan
         self.fan_ctrl_flag = False
 
         # action script
         self.interval = GpuCtl.INTERVAL
-        self.temp_cdown = GpuCtl.TEMP_CDOWN
-        self.rate_cdown = GpuCtl.RATE_CDOWN
+        self.wait = GpuCtl.WAIT_PERIOD
 
-        for gpu in self.gpu_devices:
-            gpu.prev_temp = None
-            gpu.temp_cdown = self.temp_cdown
-            gpu.rate_cdown = self.rate_cdown
 
     def _fan_control(self, gpu, t):
         if t and not self.fan_ctrl_flag and (self.fan and t > self.fan):
@@ -71,71 +68,33 @@ class GpuCtl():
             gpu.set_speed(speed)
             gpu.prev_temp = t
 
-    def _failure_action(self, gpu):
-        if gpu.is_working() == False:
-            if self.las:
-                try:
-                    rv = sc.exec_script(self.las, params=gpu.pci_dev.slot_name)
-                    logger.info(f"[{gpu.pci_dev.slot_name}/{gpu.name}] gpu failure, exec script {self.las}")
-                    time.sleep(5) # wait 5s
-                except:
-                    logger.error(f"{gpu.pci_dev.slot_name}/{gpu.name}] gpu failure, exec script {self.las} failed !!")
-            else:
-                logger.warning(f"[{gpu.pci_dev.slot_name}/{gpu.name}] gpu failure, no action script defined")
-
-
-    def _temp_action(self, gpu, t):
-        if self.temp and t > self.temp:
-            logger.warning(f"[{gpu.pci_dev.slot_name}/{gpu.name}] temp: {t}c/{self.temp}c CD: {gpu.temp_cdown}s")
-            gpu.temp_cdown -= self.interval
+    def _failure_action(self, gpu, t):
+        if self.tas:
+            try:
+                logger.warning(f"[{gpu.pci_dev.slot_name}/{gpu.name}] over temperature {self.temp}c, exec {self.tas}")
+                rv = sc.exec_script(self.tas, params=gpu.pci_dev.slot_name)
+                logger.warning(f"[{gpu.pci_dev.slot_name}/{gpu.name}] result: {rv.decode('utf-8')}")
+            except:
+                logger.error(f"{gpu.pci_dev.slot_name}/{gpu.name}] over temperature, exec {self.tas} failed !!")
         else:
-            gpu.temp_cdown = self.temp_cdown
-            return
-        
-        # take action
-        if gpu.temp_cdown <= 0:
-            if self.tas:
-                try:
-                    rv = sc.exec_script(self.tas, params=gpu.pci_dev.slot_name)
-                    logger.info(f"[{gpu.pci_dev.slot_name}/{gpu.name}] over heat, exec script {self.tas}")
-                    logger.info(f"[{gpu.pci_dev.slot_name}/{gpu.name}] result: {rv.decode('utf-8')}")
-                except:
-                    logger.error(f"{gpu.pci_dev.slot_name}/{gpu.name}] over heat, exec script {self.tas} failed !!")
-            else:
-                logger.warning(f"[{gpu.pci_dev.slot_name}/{gpu.name}] over heat, no action script defined")
+            logger.warning(f"[{gpu.pci_dev.slot_name}/{gpu.name}] over temperature {self.temp}c, no script defined")
 
-            gpu.temp_cdown = self.temp_cdown
 
-    def _get_hashrate(self, gpu, script):
-        rate = None
-        try:
-            rv = sc.exec_script(script, params=gpu.pci_dev.slot_name)
-            rate = int(rv.decode('utf-8').strip('\n'))
-        except:
-            logger.error(f"{gpu.pci_dev.slot_name}/{gpu.name}] get hashrate, exec script {script} failed !!")
-        return rate
+    def update(self, gpu, t, set_flag=False):
+        cur_temp = gpu.get_temperature()
+        fan_speed = gpu.get_speed()
 
-    def _rate_action(self, gpu, rate):
-        if rate and self.rate and rate < self.rate:
-            logger.warning(f"[{gpu.pci_dev.slot_name}/{gpu.name}] rate: {rate}/{self.rate} CD: {gpu.rate_cdown}s")
-            gpu.rate_cdown -= self.interval
+        if set_flag == True:
+            self.gpu_dict[gpu] = {'time': t, 'temp': cur_temp, 'fan':fan_speed}
+            return self.gpu_dict[gpu]
+
+        if self.gpu_dict.get(gpu):
+            if cur_temp != None and self.temp != None and cur_temp < self.temp:
+                self.gpu_dict[gpu] = {'time': t, 'temp': cur_temp, 'fan':fan_speed}
         else:
-            gpu.rate_cdown = self.rate_cdown
-            return
-        
-        # take action
-        if gpu.rate_cdown <= 0:
-            if self.ras:
-                try:
-                    rv = sc.exec_script(self.ras, params=gpu.pci_dev.slot_name)
-                    logger.info(f"[{gpu.pci_dev.slot_name}/{gpu.name}] under rate, exec script {self.tas}")
-                    logger.info(f"[{gpu.pci_dev.slot_name}/{gpu.name}] result: {rv.decode('utf-8')}")
-                except:
-                    logger.error(f"{gpu.name} under rate, exec script {self.tas} failed !!")
-            else:
-                logger.warning(f"[{gpu.pci_dev.slot_name}/{gpu.name}] under rate, no action script defined")
+            self.gpu_dict[gpu] = {'time': t, 'temp': cur_temp, 'fan':fan_speed}
 
-            gpu.rate_cdown = self.rate_cdown
+        return self.gpu_dict[gpu]
 
     def _gpu_thread(self):
         while self.abort != True:
@@ -143,30 +102,22 @@ class GpuCtl():
 
                 time.sleep(self.interval)
 
-                # gpu failure
-                self._failure_action(gpu)
+                t = time.time()
 
-                t = gpu.get_temperature()
-                if t == None:
-                    continue
+                tt = self.update(gpu, t)
+
+                if self.verbose:
+                    logger.debug(f"[{gpu.pci_dev.slot_name}/{gpu.name}] temperature {self.temp}c fan {tt['fan']}%")
 
                 # fan speed
-                self._fan_control(gpu, t)
+                self._fan_control(gpu, tt['temp'])
+
 
                 # action scripts
-
-                # temp
-                self._temp_action(gpu, t)
-
-                # rate
-                rate = self._get_hashrate(gpu, self.rms) if self.rms else None
-                self._rate_action(gpu, rate)
-
-                temp_str = f'temp: {t}/{gpu.temp_cdown}s' if t else ''
-                rate_str = f'rate: {rate}/{gpu.rate_cdown}s' if rate else ''
-                msg = temp_str + ' ' + rate_str
-                logger.debug(f"[{gpu.pci_dev.slot_name}/{gpu.name}] {msg}")
-
+                if (t - tt['time']) > GpuCtl.WAIT_PERIOD:
+                    self._failure_action(gpu, tt['temp'])
+                    tt = self.update(gpu, t, set_flag=True)
+                    
 
     def add_gpu_devices(self, gpu_devices):
         cnt = 0
@@ -194,23 +145,17 @@ class GpuCtl():
         self.abort = True
         self.thread.join()
 
-    def set_interval(self, intvl=None, temp=None, rate=None):
+    def set_interval(self, intvl=None, wait_period=None):
 
         interval = intvl if intvl else self.interval
-        temp_cdown = temp if temp else self.temp_cdown
-        rate_cdown = rate if rate else self.rate_cdown
+        wait_period = wait_period if wait_period else self.wait
 
-        if interval <= 0 or temp_cdown < interval or rate_cdown < interval:
-            logger.error(f'invalid intervals {intvl} {temp} {rate}!!!')
+        if interval <= 0 or wait_period < interval:
+            logger.error(f'invalid intervals {intvl} {wait_period} !!!')
             return False
 
         self.interval = interval
-        self.temp_cdown = temp_cdown
-        self.rate_cdown = rate_cdown
-
-        for gpu in self.gpu_devices:
-            gpu.temp_cdown = self.temp_cdown
-            gpu.rate_cdown = self.rate_cdown
+        self.wait = wait_period
 
         return True
 
@@ -227,7 +172,3 @@ if __name__ == '__main__':
         # remove duplicate gpu
         if gpu_dev and gpu_dev.is_gpu():
             gpu_devices.append(gpu_dev)
-
-    for gpu in gpu_devices:
-        rate = gpu.get_hashrate('./scripts/rate.sh')
-        print(f'[{gpu.pci_dev.slot_name}/{gpu.name}] rate: {rate}')

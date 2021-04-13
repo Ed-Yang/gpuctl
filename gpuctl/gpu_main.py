@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+from os import wait
 import sys
 import signal
 import argparse
@@ -8,10 +9,7 @@ import logging
 from gpuctl import DRYRUN, GpuCtl, logger
 from gpuctl import PciDev, GpuDev, GpuAMD, GpuNV
 
-from gpuctl import MinerCtl, scan_miner
-
-def show_net_stats():
-    cmd = "lsof -i -P -n | grep -E 'miner|Miner' | grep LISTEN"
+from gpuctl import EthCtl, scan_miner
 
 def run():
 
@@ -39,6 +37,8 @@ def run():
     # timer
     parser.add_argument('--interval', type=int, default=GpuCtl.INTERVAL,
                         help="monitoring interval")
+    parser.add_argument('--wait', type=int, default=GpuCtl.WAIT_PERIOD,
+                        help="seconds before report failure")
 
     # fan control
     parser.add_argument('--set-speed', type=int, choices=range(0,101), metavar="[0-100]", 
@@ -48,31 +48,18 @@ def run():
     parser.add_argument('-d', '--delta', type=int, default=2,
                         help="set fan speed if temperature diff %% is over DELTA (defaut:2)")
 
-    # gpu lost failure detection
-    parser.add_argument('--las', type=str, help="gpu lost action script")
-
-    # temperature monitoring/actions
-    parser.add_argument('--temp', type=int,
-                        help="over temperature action threshold")
-    parser.add_argument('--temp-cdown', type=int, default=GpuCtl.TEMP_CDOWN,
-                        help="over temperature count down")
-    parser.add_argument('--tas', type=str,
-                        help="over temperature action script")
-
-    # rate monitoring/actions
-    parser.add_argument('--rms', type=str, help="rate monitoring script")
-    parser.add_argument('--rate', type=int, default=1000,
-                        help="under rate threshold (default: 1000 kh)")
-    parser.add_argument('--rate-cdown', type=int, default=GpuCtl.RATE_CDOWN,
-                        help="under rate count down")
-    parser.add_argument('--ras', type=str, help="under rate action script")
-
     parser.add_argument('--curve', type=str,
                         help="set temp/fan-speed curve (ie. 0:0/10:10/80:100)")
 
-    # remote management
+    # temperature monitoring/actions
+    parser.add_argument('--temp', type=int, default=85,
+                        help="over temperature action threshold")
+    parser.add_argument('--tas', type=str,
+                        help="over temperature action script")
+
+    # rate
     parser.add_argument('--scan', action='store_true',
-                        help="scan miner's info through network management api")
+                        help="list miner through network inquiry")
 
     # misc
     parser.add_argument('-v', '--verbose',
@@ -83,24 +70,6 @@ def run():
 
     if args.verbose:
         logger.setLevel(logging.DEBUG)
-
-    if args.scan:
-        # 12, 8, 4, 4, 
-        ports = scan_miner()
-        for addr, port in ports:
-            minerctl = MinerCtl(addr, port)
-            r = minerctl.get_stats()
-            if r == None:
-                continue
-            print(f"Miner : {r['miner']:12}")
-            print(f"Uptime: {r['uptime']}s")
-            print(f"Rate(kh) Temp Fan  ")
-            print(f"======== ==== ==== ")
-            for i in range(len(r['temp'])):
-                print(f"{r['rate'][i]:8} {r['temp'][i]:3}c {r['fan'][i]:3}%")
-            print('')
-                
-        sys.exit(0)
 
     # parse curve
     curve = None
@@ -118,6 +87,24 @@ def run():
             print(f'Applying curve: [{args.curve}]')
         else:
             print(f'Invaid curve: [{args.curve}]')
+
+    if args.scan:
+        miners = scan_miner()
+
+        print('')
+
+        for miner in miners:
+            r = miner.get_stats()
+            if r == None:
+                continue
+            print(f"Miner : {r['name']:12}")
+            print(f"Uptime: {r['uptime']}s")
+            print(f"Rate(kh) Temp Fan  ")
+            print(f"======== ==== ==== ")
+            for i in range(len(r['temp'])):
+                print(f"{r['rate'][i]:8} {r['temp'][i]:3}c {r['fan'][i]:3}%")
+            print('')
+        sys.exit(0)
 
     # by slots
     gpu_devices = []
@@ -193,15 +180,16 @@ def run():
         if gpu.is_working() == False:
             gpu_devices.remove(gpu)
 
-    gpu_ctl = GpuCtl(gpu_devices=gpu_devices, fan=args.fan,
+    gpu_ctl = GpuCtl(gpu_devices=gpu_devices, 
+                    fan=args.fan, curve=curve,
                      delta=args.delta, 
-                     las=args.las,
                      temp=args.temp, tas=args.tas,
-                     rms=args.rms, rate=args.rate, ras=args.ras, curve=curve)
+                     verbose=args.verbose
+                     )
 
-    if not gpu_ctl.set_interval(intvl=args.interval, temp=args.temp_cdown, rate=args.rate_cdown):
+    if not gpu_ctl.set_interval(intvl=args.interval, wait_period=args.wait):
         print(
-            f'Interval error {args.interval}/{args.temp_cdown}/{args.rate_cdown} !\n')
+            f'Interval error {args.interval}/{args.wait} !\n')
         sys.exit(0)
 
     print(f"\ngpuctl: started\n")

@@ -167,7 +167,6 @@ class GpuDev():
         # current info
         self.speed = 0  # percentage
         self.temperature = 0
-        pass
 
     # def get_dev_info(self):
     #     return self.dev_info
@@ -184,7 +183,7 @@ class GpuDev():
     def get_pwr(self):
         raise NotImplementedError
 
-    def get_speed(self, percentage):
+    def get_speed(self):
         raise NotImplementedError
 
     def set_speed(self, percentage):

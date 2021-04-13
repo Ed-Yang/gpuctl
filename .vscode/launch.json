@@ -11,6 +11,9 @@
             "program": "${file}",
             "cwd": "${workspaceFolder}",
             "console": "integratedTerminal",
+            "args": [
+                "--verbose",
+            ],
             "env": {
                 "PYTHONPATH": "${workspaceFolder}"
             }
@@ -19,7 +22,7 @@
             "name": "gpuctl: list",
             "type": "python",
             "request": "launch",
-            "program": "${workspaceFolder}/gpuctl/main.py",
+            "program": "${workspaceFolder}/gpuctl/gpu_main.py",
             "cwd": "${workspaceFolder}",
             "console": "integratedTerminal",
             "args": [
@@ -34,7 +37,7 @@
             "name": "gpuctl: basic",
             "type": "python",
             "request": "launch",
-            "program": "${workspaceFolder}/gpuctl/main.py",
+            "program": "${workspaceFolder}/gpuctl/gpu_main.py",
             "console": "integratedTerminal",
             "args": [
                 "--fan", "30",
@@ -48,7 +51,7 @@
             "name": "gpuctl: slots",
             "type": "python",
             "request": "launch",
-            "program": "${workspaceFolder}/gpuctl/main.py",
+            "program": "${workspaceFolder}/gpuctl/gpu_main.py",
             "console": "integratedTerminal",
             "args": [
                 "--slots", "0000:01:00.0", 
@@ -59,27 +62,10 @@
             }
         },
         {
-            "name": "gpuctl: rate",
-            "type": "python",
-            "request": "launch",
-            "program": "${workspaceFolder}/gpuctl/main.py",
-            "console": "integratedTerminal",
-            "cwd": "${workspaceFolder}",
-            "args": [
-                "--temp", "55", "--tas", "./scripts/restart.sh", 
-                "--rms", "./scripts/rate.sh",
-                "--rate", "30000", "--ras", "./scripts/restart.sh", "-v",
-                "--rate-cdown", "10", "--temp-cdown", "10"
-            ],
-            "env": {
-                "PYTHONPATH": "${workspaceFolder}"
-            }
-        },
-        {
             "name": "gpuctl: notification",
             "type": "python",
             "request": "launch",
-            "program": "${workspaceFolder}/gpuctl/main.py",
+            "program": "${workspaceFolder}/gpuctl/gpu_main.py",
             "console": "integratedTerminal",
             "python": "${workspaceFolder}/venv/bin/python",
             "args": [
@@ -100,6 +86,26 @@
                 "XAUTHORITY":"/var/run/lightdm/edward/:0",
                 "DRYRUN":"1"
             }
-        }
+        },
+        {
+            "name": "ethctl: rate",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/gpuctl/eth_main.py",
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}",
+            "args": [
+                "--base", "3332",
+                "--interval", "1", "--wait", "10",
+                "--rmode", "2", 
+                "--script", "./scripts/pm-dev.sh", 
+                "-v",
+                "--temp", "56", "--rate", "2000"
+            ],
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}",
+                "PHOENIX_PATH":"/custom/PhoenixMiner_5.3b_Linux"
+            }
+        },
     ]
 }

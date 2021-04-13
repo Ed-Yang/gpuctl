@@ -70,7 +70,7 @@ class TestGpuCtl(unittest.TestCase):
 
         gpu_ctl = GpuCtl(gpu_devices=[gpu_dev], fam=10, temp=20, tas='./tests/ok.sh')
 
-        gpu_ctl.set_interval(temp=3)
+        gpu_ctl.set_interval(wait_period=3)
         gpu_ctl.start()
         time.sleep(5)
         gpu_ctl.stop()
@@ -87,13 +87,13 @@ class TestGpuCtl(unittest.TestCase):
 
         gpu_ctl = GpuCtl(gpu_devices=[gpu_dev])
 
-        rv = gpu_ctl.set_interval(intvl=1, temp=3, rate=5)
+        rv = gpu_ctl.set_interval(intvl=1, wait_period=3)
         self.assertTrue(rv)
 
-        rv = gpu_ctl.set_interval(intvl=2, temp=20, rate=1)
-        self.assertFalse(rv)
+        rv = gpu_ctl.set_interval(intvl=2, wait_period=20)
+        self.assertTrue(rv)
 
-        rv = gpu_ctl.set_interval(intvl=2, temp=1, rate=20)
+        rv = gpu_ctl.set_interval(intvl=2, wait_period=1)
         self.assertFalse(rv)
 
 if __name__ == '__main__':

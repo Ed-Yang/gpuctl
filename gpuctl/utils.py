@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import sys
+import os
 from gpuctl import logger, DRYRUN
 
 import subprocess as sb
@@ -80,13 +81,25 @@ class ShellCmdMixin(object):
         return data
 
     @staticmethod
-    def exec_script(script, params=None):
+    def exec_script(script, params=None, no_wait=False):
         """
         script must have executable permission (chmod +x script)
         """
-        cmd = script + ' ' + params
-        session = sb.Popen([cmd], shell=True, stdout=sb.PIPE, stderr=sb.PIPE)
-        data, err = session.communicate()
-        if err:
-            raise Exception("Error: " + str(err))
-        return data
+
+        if no_wait == True:
+            cmd =  'nohup' + ' ' + script + ' ' + params
+            session = sb.Popen(cmd.split(), 
+                preexec_fn=os.setpgrp,
+                stdout=open('/dev/null', 'w'), 
+                stderr=open('/dev/null', 'w')
+                )
+            return None
+        else:
+            cmd = script + ' ' + params
+            session = sb.Popen(cmd, shell=True, 
+                stdout=sb.PIPE, stderr=sb.PIPE
+                )
+            data, err = session.communicate()
+            if err:
+                raise Exception("Error: " + str(err))
+            return data

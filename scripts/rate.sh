@@ -14,7 +14,7 @@ if [[ $# -ne 0 ]] ; then
             PORT="3333"
             ;;
         *)
-            # PORT="0"
+            PORT="3333"
             ;;
     esac
 fi

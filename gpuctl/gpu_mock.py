@@ -20,6 +20,9 @@ class GpuOk(GpuDev):
     def get_temperature(self):
         return 30
 
+    def get_speed(self):
+        return 10
+
     def set_speed(self, percentage):
         self.speed = percentage
 
@@ -33,6 +36,9 @@ class GpuNak(GpuDev):
     def get_temperature(self):
         return 70
 
+    def get_speed(self):
+        return 10
+        
     def set_speed(self, percentage):
         self.speed = percentage
 
