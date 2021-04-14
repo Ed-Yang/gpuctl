@@ -19,8 +19,8 @@ __all__ = ['GpuCtl']
 
 class GpuCtl():
 
-    INTERVAL = 1
-    WAIT_PERIOD = 60
+    INTERVAL = 5
+    WAIT_PERIOD = 120
 
     def __init__(self, **kwargs):
 

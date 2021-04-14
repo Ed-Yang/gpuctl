@@ -8,7 +8,7 @@ import socket
 import argparse
 import json
 import syslog
-from threading import Thread
+from threading import Thread, Timer
 
 from gpuctl import logger
 from gpuctl import ShellCmdMixin as sc
@@ -187,7 +187,7 @@ class EthCtl:
 
     BASE_PORT = 3333
     QUERY_INTERVAL = 5 # seconds
-    WAIT_PERIOD = 60 # 
+    WAIT_PERIOD = 120 # delay time before take action
 
     def __init__(self, **kwargs):
 
@@ -206,6 +206,7 @@ class EthCtl:
         logger.info(f"query intervel: {self.interval} wait-time: {self.wait}")
         logger.info(f"temperature: {self.temp}c hashrate: {self.rate} kh/s")
         logger.info(f"restart mode: {self.rmode} script: {self.script}")
+        print('\n')
 
         miner_dict = {}
 
@@ -226,7 +227,7 @@ class EthCtl:
                     if mon.update() == False:
                         continue
                     miner_dict[addr] = mon
-                    logger.info(f"add miner {mon.pid}:{mon.name}:{mon.port}")
+                    logger.info(f"add miner {mon.name}:{mon.port} pid {mon.pid}")
 
 
             cur_time = time.time()
@@ -259,21 +260,27 @@ class EthCtl:
                     restart_flag = True
 
                 if restart_flag:
-                    logger.warning(f"{name}:{port} dev {dev_id} temp {cur_temp} rate {cur_rate}")
+                    msg = f"{name}:{port} dev {dev_id} temp {cur_temp} rate {cur_rate}"
+                    logger.warning(msg)
 
                     # check rmode first
                     if self.rmode :
-                        logger.info(f"{name}:{port} dev {dev_id} restarting pid {pid} mode {self.rmode} ")
+                        msg = f"{name}:{port} dev {dev_id} restarting pid {pid} mode {self.rmode} "
+                        logger.info(msg)
+                        syslog.syslog(msg)
                         mon.restart(self.rmode)
                         logger.info(f"{name}:{port} miner removed")
                         miner_dict.pop(mon.get_address())
 
                     if self.script :
-
                         params = f"{dev_id} {port} {max_temp} {min_rate}"
-                        logger.info(f"{name}:{port} dev {dev_id} exec {self.script}")
-                        sc.exec_script(self.script, params=params, no_wait=True)
+                        msg = f"{name}:{port} delay {self.wait} exec {self.script} {params}"
+                        logger.info(msg)
+                        syslog.syslog(msg)
 
+                        task = Timer(self.wait, sc.exec_script, [self.script, params, True])
+                        task.start()
+                        # sc.exec_script(self.script, params=params, no_wait=True)
 
             # remove out-dated miner
             for key in list(miner_dict):

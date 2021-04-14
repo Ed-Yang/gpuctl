@@ -20,7 +20,7 @@ if [[ $# -ne 0 ]] ; then
 fi
 
 if [[ "$PORT" != "0" ]] ; then
-    printf 'send restart command to slot=%s, port=%s\n' $SLOT $PORT
+    # printf 'send restart command to slot=%s, port=%s\n' $SLOT $PORT
     echo '{"method": "miner_restart", "jsonrpc": "2.0", "id": 5 }' | nc -w 2 localhost "$PORT"
 else
     echo -e "slot $1: remote port is not configured !!!\n" 

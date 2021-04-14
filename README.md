@@ -28,6 +28,13 @@ Ubuntu 18.4/Python3
     export NO_AT_BRIDGE=1
     ```
 
+    In some shell script, it is needed to invoke the miner executive:
+
+    ```shell
+    export PHOENIX_PATH=<path-to-phoenixminer-root>
+    export NSF_PATH=<path-to-nsfxminer-root>
+    ```
+
 * Installation from PyPI
 
     Setup Python vitual environment:
@@ -69,11 +76,37 @@ Ubuntu 18.4/Python3
     source ./venv/bin/activate
     ```
 
+## Interaction with miners
+
+To utilize the the under rate detection feature, the miner's must provide a way
+to retreive its current hash rate.  Some miner's implement the network management
+function, it could be easily enabled to make it accessable by others.
+
+The following exapmple setup a netowrk management port on TCP port 3333.
+
+* ethminer/nsfminer, additional parameters:
+
+    --HWMON 2 --api-port -3333  
+    or  
+    --HWMON 2 --api-bind 127.0.0.1:3333  
+
+* Phoenixminer, additional parameters ([check section 3](https://bitcointalk.org/index.php?topic=2647654.0)):
+
+    -cdm 2 -cdmport 3333  
+
+To test if the miner's network management function is correctly enabled:
+
+    ```shell
+    ./scripts/get-rate.sh 3333
+    ```
+
 ## GpuCtl
 
 Some parameters are applying to every GPU on whole system (like interval, curve, etc.),
 if it is necessary to provide specific setting for a GPU, it is able to run seperate
 gpuctl instance with expected parametets.
+
+* Usage
 
     ```shell
     usage: gpuctl [-h] [-l] [-s SLOTS] [-a] [-n] [--interval INTERVAL]
@@ -103,6 +136,32 @@ gpuctl instance with expected parametets.
     -v, --verbose         show debug message
     ```
 
+* Action scripts
+
+A few examples of action script are provided for reference, besides it is feasible to write a script to send syslog, email or telegram message, etc.
+
+- scripts/gpu-failure.sh: shutdown system and schedule reboot
+- scripts/restart.sh: restart miner
+- scripts/reboot.sh: reboot rig
+
+If a failure is detected, the gpuctl will invoke the given script with slot name as argument.
+
+Take the 'nsfminer' as example, if we want to implement while error is detected, the gpuctl will inform 'nsfminer' program
+to restart itself, we should fill in the correct mapping for slot to TCP port number which the nsfminer listened to.
+
+    ```shell
+    if [[ $# -ne 0 ]] ; then
+        case $1 in
+            0000:01:00.0)
+            #     PORT="3335"
+            #     ;;
+            *)
+                PORT="3333"
+                ;;
+        esac
+    fi
+    ```
+
 * Slot Name
 
 The slot name of each GPU card could be found by using "lspci -D" command.
@@ -114,31 +173,6 @@ In the following output, the slot name of AMD GPU card is "0000:01:00.0".
 
     ```shell
     0000:01:00.0 VGA compatible controller....
-    ```
-
-* Action scripts
-
-A few examples of action script are provided for reference, besides it is feasible to write a script to send syslog, email or telegram message, etc.
-
-- scripts/restart.sh: restart miner
-- scripts/reboot.sh: reboot rig
-
-If a failure is detected, the gpuctl will invoke the given script with slot name as argument.
-
-Take the 'ethminer' as example, if we want to implement while error is detected, the gpuctl will inform 'ethminer' program
-to restart itself, we should fill in the correct mapping for slot to TCP port number which the ethminer listened to.
-
-    ```shell
-    if [[ $# -ne 0 ]] ; then
-        case $1 in
-            # 0000:01:00.0)
-            #     PORT="3335"
-            #     ;;
-            *)
-                PORT="3333"
-                ;;
-        esac
-    fi
     ```
 
 ### Examples
@@ -177,132 +211,110 @@ to restart itself, we should fill in the correct mapping for slot to TCP port nu
     02:01:19 INFO     [0000:0d:00.0/NV ] current temp. 49c set speed 0%
     ```
 
-* Example 3) For every GPU, if its temeprature is over 50c, then activate fan control and if its temeprature is over 60c for 30s, call failure action script
+* Example 3) For every GPU, if its temeprature is over 50c, then activate fan control and if its temeprature is over 85c for 30s, call failure action script
+
+    Note, invoking gpu-failure.sh will shutdown the system and schedulee to restart at 5 minutes later.
 
     ```shell
-    sudo gpuctl --fan 50 --temp 60 --tas ./scripts/gpu-failure.sh --wait 30
+    sudo gpuctl --fan 50 --temp 85 --tas ./scripts/gpu-failure.sh --wait 30
+    ```
+
+* Example 4)  **nsfminer** If the temeprature of a GPU is over 60c, call action script "restart.sh" to restart miner
+
+    Note, the Phoenix might not be corectly restared through network command, so this mechanism only suitable for nsfminer.
+
+    ```shell
+    gpuctl --temp 60 --tas ./scripts/restart.sh
+    ```
+
+    ```shell
+    ID Slot Name    Vendor   PCI-ID      Temp. Fan  PWR     Working
+    -- ------------ -------- ----------- ----- ---- ------- -------
+    1 0000:01:00.0 AMD      [1002:67DF]   76c  47% 129.00w True
+
+    gpuctl: started
+
+    20:21:02 WARNING  [0000:01:00.0/AMD] over temperature 60c, exec ./scripts/restart.sh
+    20:21:04 WARNING  [0000:01:00.0/AMD] result: {"id":5,"jsonrpc":"2.0","result":true}
     ```
 
 ## EthCtl
 
-### Interaction with miners
-
-To utilize the the under rate detection feature, the miner's must provide a way
-to retreive its current hash rate.  Some miner's implement the network management
-function, it could be easily enabled to make it accessable by others.
-
-The following exapmple setup a netowrk management port on TCP port 3333.
-
-* Ethminer/nsfminer, additional parameters:
-
-    --HWMON 2 --api-bind 127.0.0.1:3333 or
-    --HWMON 2 --api-port -3333 
-
-* Phoenixminer, additional parameters ([check section 3](https://bitcointalk.org/index.php?topic=2647654.0)):
-
-    -cdm 2 -cdmport 3333
-
-    If miner's network management function is enabled, it could be tested by:
-
-* Sample Scripts
-
-Get hash rate:
+* Usage
 
     ```shell
-    ./scripts/rate.sh
-    ```
+    usage: ethctl [-h] [-l] [-b BASE] [--interval INTERVAL] [-w WAIT] [-t TEMP]
+                [-r RATE] [--rmode RMODE] [-s SCRIPT] [-v]
 
-Restart miner:
-    
-    ```shell
-    ./scripts/restart.sh
+    optional arguments:
+    -h, --help            show this help message and exit
+    -l, --list            list all miners
+    -b BASE, --base BASE  tcp port offset, ie. device N is listened on base + N
+    --interval INTERVAL   monitoring interval
+    -w WAIT, --wait WAIT  count down interval
+    -t TEMP, --temp TEMP  over temperature action threshold
+    -r RATE, --rate RATE  under rate threshold (default: 1000 kh)
+    --rmode RMODE         failure restart, 0: none, 1: net restart, 2: kill
+    -s SCRIPT, --script SCRIPT
+                            calling to script on failure
+    -v, --verbose         show debug message
     ```
 
 ### Examples
 
-
-* Example 1) For every GPU, if its temeprature is over 55c, or rate under 30000 Kh/s call restart script
-
-Use ethminer as example:
+* Example 1) List all miner with network management function enabled
 
     ```shell
-    ethminer -G --HWMON 2 --api-port 3333 -P ....
-    ```
-
-    ```shell
-    ethctl --rate 10 -r 2 -s ./scripts/pm-all.sh -v
+    ethctl --list
     ```
 
     ```shell
     Miner : 'PM 5.3b - ETH'
-    Uptime: 120s
+    Uptime: 214980s
     Rate(kh) Temp Fan  
     ======== ==== ==== 
-    19385  55c   9%
-    30034  69c   0%
-    20353  47c   0%
+    24869    74c  48%
+    ```
+
+* Example 2) **PhoenixMiner** if the highest of temeprature of miner's GPU(s) is over 75c, 
+or the lowest hashrate under 2 Mh/s call for 60s, 
+kill the miner's process and call action script to restart miner
+
+Use PhoenixMiner 5.3b as example:
+
+    Start miner:
+
+    ```shell
+    ./scripts/pm-all.sh
+    ```
+
+    Open a new terminal and run:
+
+    ```shell
+    ethctl -t 75 -r 2000 --rmode 2 -s ./scripts/pm-all.sh
+    ```
+
+    ```shell
+    Miner : 'PM 5.3b'   
+    Uptime: 0s
+    Rate(kh) Temp Fan  
+    ======== ==== ==== 
+        0  48c  48%
 
 
     ethctl: started
 
-    03:29:06 INFO     query intervel: 5 wait-time: 60
-    03:29:06 INFO     temperature: Nonec hashrate: 10 kh/s
-    03:29:06 INFO     restart mode: 2 script: ./scripts/pm-all.sh
-    03:29:11 DEBUG    check miner status (total 1)
-    03:29:11 INFO     add miner 12065:'PM 5.3b - ETH':3333
-    03:29:11 DEBUG    'PM 5.3b - ETH':3333 dev 0 temp [55, 69, 47] rate [19390, 30039, 20367]
-    ```
+    23:29:52 INFO     query intervel: 5 wait-time: 120
+    23:29:52 INFO     temperature: 75c hashrate: 2000 kh/s
+    23:29:52 INFO     restart mode: 2 script: ./scripts/pm-all.sh
 
-If the miner is rebooting, it might not be able to retrieve the hash rate for a few seconds.
 
-* Example 5) Set all of the GPU's fan speed to 50%
-
-    ```shell
-    sudo gpuctl --set-speed 50
-    ```
-
-    ```shell
-    ID Slot Name    Vendor   PCI-ID      Temp. Fan  PWR    Working
-    -- ------------ -------- ----------- ----- ---- ------ -------
-    1 0000:01:00.0 NVIDIA   [10DE:1C03]  54c  50%  73.74w True
-    2 0000:0b:00.0 AMD      [1002:67DF]  61c  47%  80.00w True
-    3 0000:0d:00.0 NVIDIA   [10DE:1C03]  47c  50%  73.87w True
-    ```
-
-* Example 6) If one of GPU(s) failed, halt system and schedule wakeup
-
-    ```shell
-    sudo gpuctl --las ./scripts/gpu-failure.sh -v
-    ```
-
-### Examples
-
-* Example 7) Get miner's info through network management API
-
-    If the miner is running in user mode, it can execute the script command without "sudo".
-
-    Note, miner might not report correct current fan speed.
-
-    ```shell
-    sudo gpuctl --scan
-    ```
-
-    ```shell
-    Miner : nsfminer-1.3.9-8+commit.4b250d6b.dirty
-    Uptime: 1080s
-    Rate(kh) Temp Fan  
-    ======== ==== ==== 
-    19143  68c   0%
-    Miner : nsfminer-1.3.9-8+commit.4b250d6b.dirty
-    Uptime: 1080s
-    Rate(kh) Temp Fan  
-    ======== ==== ==== 
-    28340  66c  47%
-    Miner : nsfminer-1.3.9-8+commit.4b250d6b.dirty
-    Uptime: 1020s
-    Rate(kh) Temp Fan  
-    ======== ==== ==== 
-    19963  48c   0%
+    23:30:43 INFO     add miner 'PM 5.3b - ETH':3333 pid 27381
+    23:33:20 WARNING  'PM 5.3b - ETH':3333 dev 0 rate 0 under threshold
+    23:33:20 WARNING  'PM 5.3b - ETH':3333 dev 0 temp [72] rate [0]
+    23:33:20 INFO     'PM 5.3b - ETH':3333 dev 0 restarting pid 27381 mode 2 
+    23:33:20 INFO     'PM 5.3b - ETH':3333 miner removed
+    23:33:20 INFO     'PM 5.3b - ETH':3333 delay 120 exec ./scripts/pm-all.sh 0 3333 72 0
     ```
 
 ## User mode

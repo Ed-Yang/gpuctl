@@ -1,1 +1,3 @@
-python --versionxxx
+#!/bin/bash
+
+python --version

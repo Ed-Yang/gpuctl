@@ -28,25 +28,25 @@ def run():
                         help="list all miners")
 
     parser.add_argument('-b', '--base', type=int, default=EthCtl.BASE_PORT,
-                        help="miner's tcp port offset, ie. device N is listend on base + N")
+                        help="tcp port offset, ie. device N is listened on base + N")
 
     # timer
     parser.add_argument('--interval', type=int, default=EthCtl.QUERY_INTERVAL,
                         help="monitoring interval")
 
-    parser.add_argument('--wait', type=int, default=EthCtl.WAIT_PERIOD,
+    parser.add_argument('-w', '--wait', type=int, default=EthCtl.WAIT_PERIOD,
                         help="count down interval")
 
     # temperature monitoring
-    parser.add_argument('--temp', type=int,
+    parser.add_argument('-t', '--temp', type=int,
                         help="over temperature action threshold")
 
     # rate monitoring
-    parser.add_argument('--rate', type=int, default=1000,
+    parser.add_argument('-r', '--rate', type=int, default=1000,
                         help="under rate threshold (default: 1000 kh)")
 
     # action
-    parser.add_argument('-r', '--rmode', type=int, default=0,
+    parser.add_argument('--rmode', type=int, default=0,
                         help="failure restart, 0: none, 1: net restart, 2: kill")
 
     parser.add_argument('-s', '--script', type=str,
@@ -81,9 +81,9 @@ def run():
     if args.list:
         sys.exit(0)
 
-    if len(miners) == 0:
-        print('ethctl: No Miner found, abort !\n')
-        sys.exit(0)
+    # if len(miners) == 0:
+    #     print('ethctl: No Miner found, abort !\n')
+    #     sys.exit(0)
 
     if args.temp == None and args.rate == None:
         print('ethctl: Must set --temp and/or --rate !\n')

@@ -86,6 +86,8 @@ class ShellCmdMixin(object):
         script must have executable permission (chmod +x script)
         """
 
+        logger.info(f"exec script {script} {params} no_wait {no_wait}")
+
         if no_wait == True:
             cmd =  'nohup' + ' ' + script + ' ' + params
             session = sb.Popen(cmd.split(), 
