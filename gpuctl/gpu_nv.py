@@ -68,7 +68,7 @@ class GpuNV(GpuDev):
             return
 
         cmd = f"nvidia-settings -c {self.display} -a [gpu:{self.nv_id}]/GPUFanControlState=1 -a [fan:{self.nv_id}]/GPUTargetFanSpeed={speed}"
-        logger.debug(f'exec: {cmd}')
+        # logger.debug(f'exec: {cmd}')
         try:
             sc.exec_cmd(cmd)
             logger.debug(

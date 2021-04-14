@@ -152,9 +152,14 @@ class EthMon(EthMiner):
         if self.max_temp != None:
             if max_t <= self.max_temp:
                 self.last_temp = cur_time
+        else:
+            self.last_temp = cur_time
+
         if self.min_rate != None:
             if min_r > self.min_rate:
                 self.last_rate = cur_time
+        else:
+            self.last_rate = cur_time
 
         # prevent the unstable miner being add to watch list
         if self.uptime < UP_TIME_THRESHOLD:
@@ -209,6 +214,8 @@ class EthCtl:
 
             # re-scan miner
             miners = scan_miner()
+            if self.verbose:
+                    logger.debug(f"check miner status (total {len(miners)})")
 
             # add new miners
             for m in miners:
@@ -237,13 +244,18 @@ class EthCtl:
                 port = mon.port
                 cur_temp = mon.cur_temp
                 cur_rate = mon.cur_rate
+                max_temp = max(cur_temp)
+                min_rate = min(cur_rate)
 
                 if self.verbose:
                     logger.debug(f"{name}:{port} dev {dev_id} temp {cur_temp} rate {cur_rate}")
+
                 restart_flag = False
                 if (cur_time - mon.last_temp) > self.wait:
+                    logger.warning(f"{name}:{port} dev {dev_id} temp {max_temp} over threshold")
                     restart_flag = True
                 if (cur_time - mon.last_rate) > self.wait:
+                    logger.warning(f"{name}:{port} dev {dev_id} rate {min_rate} under threshold")
                     restart_flag = True
 
                 if restart_flag:
@@ -257,8 +269,7 @@ class EthCtl:
                         miner_dict.pop(mon.get_address())
 
                     if self.script :
-                        max_temp = max(cur_temp)
-                        min_rate = min(cur_rate)
+
                         params = f"{dev_id} {port} {max_temp} {min_rate}"
                         logger.info(f"{name}:{port} dev {dev_id} exec {self.script}")
                         sc.exec_script(self.script, params=params, no_wait=True)

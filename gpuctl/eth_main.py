@@ -85,7 +85,7 @@ def run():
         print('ethctl: No Miner found, abort !\n')
         sys.exit(0)
 
-    if args.temp == None and args.temp == None:
+    if args.temp == None and args.rate == None:
         print('ethctl: Must set --temp and/or --rate !\n')
         sys.exit(0)
 

@@ -50,6 +50,8 @@ class GpuCtl():
         self.interval = GpuCtl.INTERVAL
         self.wait = GpuCtl.WAIT_PERIOD
 
+        for gpu in self.gpu_devices:
+            gpu.prev_temp = None
 
     def _fan_control(self, gpu, t):
         if t and not self.fan_ctrl_flag and (self.fan and t > self.fan):
@@ -81,6 +83,8 @@ class GpuCtl():
 
 
     def update(self, gpu, t, set_flag=False):
+
+        # gpu.prev_temp = 
         cur_temp = gpu.get_temperature()
         fan_speed = gpu.get_speed()
 
@@ -107,11 +111,10 @@ class GpuCtl():
                 tt = self.update(gpu, t)
 
                 if self.verbose:
-                    logger.debug(f"[{gpu.pci_dev.slot_name}/{gpu.name}] temperature {self.temp}c fan {tt['fan']}%")
+                    logger.debug(f"[{gpu.pci_dev.slot_name}/{gpu.name}] temperature {tt['temp']}c fan {tt['fan']}%")
 
                 # fan speed
                 self._fan_control(gpu, tt['temp'])
-
 
                 # action scripts
                 if (t - tt['time']) > GpuCtl.WAIT_PERIOD:
@@ -130,7 +133,7 @@ class GpuCtl():
                     break
             if not dup_flag:
                 cnt += 1
-                self.gpu_devices.append()
+                self.gpu_devices.append(gpu)
         return cnt
 
     def start(self):

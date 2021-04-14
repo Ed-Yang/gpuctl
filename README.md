@@ -1,4 +1,4 @@
-# GPU Monitoring and Failure Notification
+# GPU Monitoring and Failure Notification/Recovery
 
 [![CircleCI](https://circleci.com/gh/Ed-Yang/gpuctl.svg?style=svg)](https://circleci.com/gh/Ed-Yang/gpuctl)
 
@@ -28,7 +28,21 @@ Ubuntu 18.4/Python3
     export NO_AT_BRIDGE=1
     ```
 
-* Clone the source
+* Installation from PyPI
+
+    Setup Python vitual environment:
+
+    ```shell
+    cd gpuctl
+    python3 -m venv venv
+    source ./venv/bin/activate
+    ```
+
+    ```shell
+    pip insall gpuctl
+    ```
+
+* Installation from source
 
     ```shell
     git clone https://github.com/Ed-Yang/gpuctl
@@ -55,7 +69,7 @@ Ubuntu 18.4/Python3
     source ./venv/bin/activate
     ```
 
-### Usage
+## GpuCtl
 
 Some parameters are applying to every GPU on whole system (like interval, curve, etc.),
 if it is necessary to provide specific setting for a GPU, it is able to run seperate
@@ -63,10 +77,8 @@ gpuctl instance with expected parametets.
 
     ```shell
     usage: gpuctl [-h] [-l] [-s SLOTS] [-a] [-n] [--interval INTERVAL]
-                [--set-speed [0-100]] [-f FAN] [-d DELTA] [--las LAS]
-                [--temp TEMP] [--temp-cdown TEMP_CDOWN] [--tas TAS] [--rms RMS]
-                [--rate RATE] [--rate-cdown RATE_CDOWN] [--ras RAS]
-                [--curve CURVE] [--scan] [-v]
+              [--wait WAIT] [--set-speed [0-100]] [-f FAN] [-d DELTA]
+              [--curve CURVE] [--temp TEMP] [--tas TAS] [--scan] [-v]
 
     optional arguments:
     -h, --help            show this help message and exit
@@ -77,24 +89,17 @@ gpuctl instance with expected parametets.
     -a, --amd             only use AMD GPU
     -n, --nvidia          only use Nvidia GPU
     --interval INTERVAL   monitoring interval
+    --wait WAIT           seconds before report failure
     --set-speed [0-100]   set the fan speed (0~100)
     -f FAN, --fan FAN     if temperature is exceed than FAN once, activate fan
                             control (default:70)
     -d DELTA, --delta DELTA
                             set fan speed if temperature diff % is over DELTA
                             (defaut:2)
-    --las LAS             gpu lost action script
-    --temp TEMP           over temperature action threshold
-    --temp-cdown TEMP_CDOWN
-                            over temperature count down
-    --tas TAS             over temperature action script
-    --rms RMS             rate monitoring script
-    --rate RATE           under rate threshold (default: 1000 kh)
-    --rate-cdown RATE_CDOWN
-                            under rate count down
-    --ras RAS             under rate action script
     --curve CURVE         set temp/fan-speed curve (ie. 0:0/10:10/80:100)
-    --scan                scan miner's info through network management api
+    --temp TEMP           over temperature action threshold
+    --tas TAS             over temperature action script
+    --scan                list miner through network inquiry
     -v, --verbose         show debug message
     ```
 
@@ -115,12 +120,10 @@ In the following output, the slot name of AMD GPU card is "0000:01:00.0".
 
 A few examples of action script are provided for reference, besides it is feasible to write a script to send syslog, email or telegram message, etc.
 
-- scripts/rate.sh: get miner's current hashrate
 - scripts/restart.sh: restart miner
 - scripts/reboot.sh: reboot rig
 
-
-If a failure is detected (over heat or under rate), the gpuctl will invoke the given script with slot name as argument.
+If a failure is detected, the gpuctl will invoke the given script with slot name as argument.
 
 Take the 'ethminer' as example, if we want to implement while error is detected, the gpuctl will inform 'ethminer' program
 to restart itself, we should fill in the correct mapping for slot to TCP port number which the ethminer listened to.
@@ -137,6 +140,50 @@ to restart itself, we should fill in the correct mapping for slot to TCP port nu
         esac
     fi
     ```
+
+### Examples
+
+* Example 1) List on board GPU cards 
+
+    ```shell
+    gpuctl --list
+    ```
+
+    ```shell
+    ID Slot Name    Vendor   PCI-ID      Temp. Fan  PWR    Working
+    -- ------------ -------- ----------- ----- ---- ------ -------
+    1 0000:01:00.0 NVIDIA   [10DE:1C03]  54c  10%  73.63w True
+    2 0000:0b:00.0 AMD      [1002:67DF]  61c  60%  80.00w True
+    3 0000:0d:00.0 NVIDIA   [10DE:1C03]  47c   0%  76.18w True
+    ```
+
+* Example 2) For all of the GPUs, if its temperature is over 50c, then activate the fan speed control.
+
+    ```shell
+    sudo gpuctl --fan 50
+    ```
+
+    ```shell
+    ID Slot Name    Vendor   PCI-ID      Temp. Fan  PWR    Working
+    -- ------------ -------- ----------- ----- ---- ------ -------
+    1 0000:01:00.0 NVIDIA   [10DE:1C03]  57c  30%  73.29w True
+    2 0000:0b:00.0 AMD      [1002:67DF]  80c  27%  81.00w True
+    3 0000:0d:00.0 NVIDIA   [10DE:1C03]  49c  30%  74.90w True
+
+    gpuctl: started
+
+    02:01:17 INFO     [0000:01:00.0/NV ] current temp. 57c set speed 52%
+    02:01:18 INFO     [0000:0b:00.0/AMD] current temp. 80c set speed 100%
+    02:01:19 INFO     [0000:0d:00.0/NV ] current temp. 49c set speed 0%
+    ```
+
+* Example 3) For every GPU, if its temeprature is over 50c, then activate fan control and if its temeprature is over 60c for 30s, call failure action script
+
+    ```shell
+    sudo gpuctl --fan 50 --temp 60 --tas ./scripts/gpu-failure.sh --wait 30
+    ```
+
+## EthCtl
 
 ### Interaction with miners
 
@@ -173,47 +220,8 @@ Restart miner:
 
 ### Examples
 
-* Example 1) List on board GPU cards 
 
-    ```shell
-    gpuctl --list
-    ```
-
-    ```shell
-    ID Slot Name    Vendor   PCI-ID      Temp. Fan  PWR    Working
-    -- ------------ -------- ----------- ----- ---- ------ -------
-    1 0000:01:00.0 NVIDIA   [10DE:1C03]  54c  10%  73.63w True
-    2 0000:0b:00.0 AMD      [1002:67DF]  61c  60%  80.00w True
-    3 0000:0d:00.0 NVIDIA   [10DE:1C03]  47c   0%  76.18w True
-    ```
-
-* Example 2) For all of the GPUs, if its temperature is over 30c, then activate the fan speed control.
-
-    ```shell
-    sudo gpuctl --fan 30
-    ```
-
-    ```shell
-    ID Slot Name    Vendor   PCI-ID      Temp. Fan  PWR    Working
-    -- ------------ -------- ----------- ----- ---- ------ -------
-    1 0000:01:00.0 NVIDIA   [10DE:1C03]  54c  60%  73.72w True
-    2 0000:0b:00.0 AMD      [1002:67DF]  61c  60%  80.00w True
-    3 0000:0d:00.0 NVIDIA   [10DE:1C03]  47c  60%  75.49w True
-
-    gpuctl: started
-
-    02:11:53 INFO     [0000:01:00.0/NV ] current temp. 54c set speed 10%
-    02:11:55 INFO     [0000:0b:00.0/AMD] current temp. 61c set speed 61%
-    02:11:56 INFO     [0000:0d:00.0/NV ] current temp. 47c set speed 0%
-    ```
-
-* Example 3) For every GPU, if its temeprature is over 50c, then activate fan control and if its temeprature is 55c for 5s, call restart script
-
-    ```shell
-    sudo gpuctl --fan 50 --temp 55 --tas ./scripts/restart.sh --temp-cdown 5
-    ```
-
-* Example 4) For every GPU, if its temeprature is over 55c, or rate under 30000 Kh/s call restart script
+* Example 1) For every GPU, if its temeprature is over 55c, or rate under 30000 Kh/s call restart script
 
 Use ethminer as example:
 
@@ -222,9 +230,28 @@ Use ethminer as example:
     ```
 
     ```shell
-    sudo gpuctl --temp 55 --tas ./scripts/restart.sh --rms ./scripts/rate.sh --rate 30000 --ras ./scripts/restart.sh
+    ethctl --rate 10 -r 2 -s ./scripts/pm-all.sh -v
     ```
 
+    ```shell
+    Miner : 'PM 5.3b - ETH'
+    Uptime: 120s
+    Rate(kh) Temp Fan  
+    ======== ==== ==== 
+    19385  55c   9%
+    30034  69c   0%
+    20353  47c   0%
+
+
+    ethctl: started
+
+    03:29:06 INFO     query intervel: 5 wait-time: 60
+    03:29:06 INFO     temperature: Nonec hashrate: 10 kh/s
+    03:29:06 INFO     restart mode: 2 script: ./scripts/pm-all.sh
+    03:29:11 DEBUG    check miner status (total 1)
+    03:29:11 INFO     add miner 12065:'PM 5.3b - ETH':3333
+    03:29:11 DEBUG    'PM 5.3b - ETH':3333 dev 0 temp [55, 69, 47] rate [19390, 30039, 20367]
+    ```
 
 If the miner is rebooting, it might not be able to retrieve the hash rate for a few seconds.
 
@@ -247,6 +274,8 @@ If the miner is rebooting, it might not be able to retrieve the hash rate for a 
     ```shell
     sudo gpuctl --las ./scripts/gpu-failure.sh -v
     ```
+
+### Examples
 
 * Example 7) Get miner's info through network management API
 
