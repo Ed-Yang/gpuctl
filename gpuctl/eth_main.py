@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
 
 import sys
+import os
 import signal
 import argparse
 import logging
 import syslog
 
+from gpuctl import __version__
 from gpuctl import DRYRUN, GpuCtl, logger
 from gpuctl import PciDev, GpuDev, GpuAMD, GpuNV
 
@@ -42,12 +44,15 @@ def run():
                         help="over temperature action threshold")
 
     # rate monitoring
-    parser.add_argument('-r', '--rate', type=int, default=1000,
-                        help="under rate threshold (default: 1000 kh)")
+    parser.add_argument('-r', '--rate', type=int, default=2000,
+                        help="under rate threshold (default: 2000 kh)")
 
     # action
     parser.add_argument('--rmode', type=int, default=0,
                         help="failure restart, 0: none, 1: net restart, 2: kill")
+
+    parser.add_argument('-d', '--delay', type=int, default=0,
+                        help="delay before calling the action script")
 
     parser.add_argument('-s', '--script', type=str,
                         help="calling to script on failure")
@@ -56,11 +61,21 @@ def run():
     parser.add_argument('-v', '--verbose',
                         action='store_true', help="show debug message")
 
+    parser.add_argument('-V', '--version', action='version', version="%(prog)s-" + __version__, help="show version info")
+
     # parse arguments
     args = parser.parse_args()
 
+    syslog.openlog(logoption=syslog.LOG_PID, facility=syslog.LOG_USER)
+
     if args.verbose:
         logger.setLevel(logging.DEBUG)
+
+    # check if script is existed
+    if args.script != None:
+        if not os.path.isfile(args.script):
+            print(f'ethctl: script {args.script} not found !\n')
+            sys.exit(0)
 
     miners = scan_miner()
 
@@ -70,7 +85,7 @@ def run():
         r = miner.get_stats()
         if r == None:
             continue
-        print(f"Miner : {r['name']:12}")
+        print(f"Miner : {r['name']:12}, tcp port: {miner.port}, pid: {miner.pid}")
         print(f"Uptime: {r['uptime']}s")
         print(f"Rate(kh) Temp Fan  ")
         print(f"======== ==== ==== ")
@@ -81,16 +96,12 @@ def run():
     if args.list:
         sys.exit(0)
 
-    # if len(miners) == 0:
-    #     print('ethctl: No Miner found, abort !\n')
-    #     sys.exit(0)
-
     if args.temp == None and args.rate == None:
         print('ethctl: Must set --temp and/or --rate !\n')
         sys.exit(0)
 
     eth_ctl = EthCtl(base=args.base, temp=args.temp, rate=args.rate, 
-            rmode=args.rmode, script=args.script, verbose=args.verbose)
+            rmode=args.rmode, script=args.script, wait=args.wait, delay=args.delay, verbose=args.verbose)
 
     if not eth_ctl.set_interval(intvl=args.interval, wait_period=args.wait):
         print(

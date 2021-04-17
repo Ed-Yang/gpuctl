@@ -4,6 +4,7 @@ import os
 import sys
 import time
 import re
+import syslog
 import argparse
 import subprocess as sb
 from threading import Thread
@@ -44,7 +45,7 @@ class GpuCtl():
         self.gpu_dict = {}
 
         # fan
-        self.fan_ctrl_flag = False
+        # self.fan_ctrl_flag = False
 
         # action script
         self.interval = GpuCtl.INTERVAL
@@ -52,13 +53,14 @@ class GpuCtl():
 
         for gpu in self.gpu_devices:
             gpu.prev_temp = None
+            gpu.fan_ctrl_flag = False
 
     def _fan_control(self, gpu, t):
-        if t and not self.fan_ctrl_flag and (self.fan and t > self.fan):
-            logger.debug('fan control is activated')
-            self.fan_ctrl_flag = True
+        if t and not gpu.fan_ctrl_flag and (self.fan and t > self.fan):
+            logger.debug(f'[{gpu.pci_dev.slot_name}/{gpu.name}] fan control is activated')
+            gpu.fan_ctrl_flag = True
 
-        if not self.fan_ctrl_flag:
+        if not gpu.fan_ctrl_flag:
             return
 
         speed = gpu.temp_to_speed(t)
@@ -73,18 +75,25 @@ class GpuCtl():
     def _failure_action(self, gpu, t):
         if self.tas:
             try:
-                logger.warning(f"[{gpu.pci_dev.slot_name}/{gpu.name}] over temperature {self.temp}c, exec {self.tas}")
+                msg = f"[{gpu.pci_dev.slot_name}/{gpu.name}] over temperature {self.temp}c, exec {self.tas}"
+                logger.warning(msg)
+                syslog.syslog(syslog.LOG_WARNING, msg)
+
                 rv = sc.exec_script(self.tas, params=gpu.pci_dev.slot_name)
-                logger.warning(f"[{gpu.pci_dev.slot_name}/{gpu.name}] result: {rv.decode('utf-8')}")
+                if self.verbose:
+                    logger.debug(f"[{gpu.pci_dev.slot_name}/{gpu.name}] result: {rv.decode('utf-8')}")
             except:
-                logger.error(f"{gpu.pci_dev.slot_name}/{gpu.name}] over temperature, exec {self.tas} failed !!")
+                msg = f"[{gpu.pci_dev.slot_name}/{gpu.name}] over temperature, exec {self.tas} failed !!"
+                logger.error(msg)
+                syslog.syslog(syslog.LOG_ERR, msg)
         else:
-            logger.warning(f"[{gpu.pci_dev.slot_name}/{gpu.name}] over temperature {self.temp}c, no script defined")
+            msg = f"[{gpu.pci_dev.slot_name}/{gpu.name}] over temperature {self.temp}c, no script defined"
+            logger.warning(msg)
+            syslog.syslog(syslog.LOG_WARNING, msg)
 
 
     def update(self, gpu, t, set_flag=False):
 
-        # gpu.prev_temp = 
         cur_temp = gpu.get_temperature()
         fan_speed = gpu.get_speed()
 
@@ -95,32 +104,44 @@ class GpuCtl():
         if self.gpu_dict.get(gpu):
             if cur_temp != None and self.temp != None and cur_temp < self.temp:
                 self.gpu_dict[gpu] = {'time': t, 'temp': cur_temp, 'fan':fan_speed}
+            else:
+                self.gpu_dict[gpu]['temp'] = cur_temp
+                self.gpu_dict[gpu]['fan'] = fan_speed
         else:
             self.gpu_dict[gpu] = {'time': t, 'temp': cur_temp, 'fan':fan_speed}
 
         return self.gpu_dict[gpu]
 
     def _gpu_thread(self):
+        
+        syslog.syslog(syslog.LOG_INFO, 'started.')
+
+        logger.info(f"query intervel: {self.interval} wait-time: {self.wait}")
+        logger.info(f"temperature threshold: {self.temp}")
+        logger.info(f"fan control threshold: {self.fan}")
+        logger.info(f"script: {self.tas}")
+        print('\n')
+
         while self.abort != True:
+            time.sleep(self.interval)
+            t = time.time()
             for gpu in self.gpu_devices:
-
-                time.sleep(self.interval)
-
-                t = time.time()
 
                 tt = self.update(gpu, t)
 
                 if self.verbose:
-                    logger.debug(f"[{gpu.pci_dev.slot_name}/{gpu.name}] temperature {tt['temp']}c fan {tt['fan']}%")
+                    rem = self.wait - int(t-tt['time'])
+                    logger.debug(f"[{gpu.pci_dev.slot_name}/{gpu.name}] temperature {tt['temp']}c fan {tt['fan']}% ({rem}s)")
 
                 # fan speed
                 self._fan_control(gpu, tt['temp'])
 
                 # action scripts
-                if (t - tt['time']) > GpuCtl.WAIT_PERIOD:
+                if (t - tt['time']) > self.wait:
                     self._failure_action(gpu, tt['temp'])
                     tt = self.update(gpu, t, set_flag=True)
                     
+        syslog.syslog(syslog.LOG_INFO, 'stopped.')
 
     def add_gpu_devices(self, gpu_devices):
         cnt = 0

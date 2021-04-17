@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
 
-from os import wait
 import sys
+import os
 import signal
 import argparse
 import logging
+import syslog
 
+from gpuctl import __version__
 from gpuctl import DRYRUN, GpuCtl, logger
 from gpuctl import PciDev, GpuDev, GpuAMD, GpuNV
 
@@ -37,8 +39,8 @@ def run():
     # timer
     parser.add_argument('--interval', type=int, default=GpuCtl.INTERVAL,
                         help="monitoring interval")
-    parser.add_argument('--wait', type=int, default=GpuCtl.WAIT_PERIOD,
-                        help="seconds before report failure")
+    parser.add_argument('-w', '--wait', type=int, default=GpuCtl.WAIT_PERIOD,
+                        help="seconds before take action")
 
     # fan control
     parser.add_argument('--set-speed', type=int, choices=range(0,101), metavar="[0-100]", 
@@ -65,11 +67,22 @@ def run():
     parser.add_argument('-v', '--verbose',
                         action='store_true', help="show debug message")
 
+    parser.add_argument('-V', '--version', action='version', version="%(prog)s-" + __version__, help="show version info")
+
     # parse arguments
     args = parser.parse_args()
 
+    syslog.openlog(logoption=syslog.LOG_PID, facility=syslog.LOG_USER)
+
     if args.verbose:
         logger.setLevel(logging.DEBUG)
+
+    # check if script is existed
+    if args.tas != None:
+        if not os.path.isfile(args.tas):
+            print(f'gpuctl: script {args.tas} not found !\n')
+            sys.exit(0)
+
 
     # parse curve
     curve = None
@@ -97,7 +110,7 @@ def run():
             r = miner.get_stats()
             if r == None:
                 continue
-            print(f"Miner : {r['name']:12}")
+            print(f"Miner : {r['name']:12}, tcp port: {miner.port}, pid: {miner.pid}")
             print(f"Uptime: {r['uptime']}s")
             print(f"Rate(kh) Temp Fan  ")
             print(f"======== ==== ==== ")

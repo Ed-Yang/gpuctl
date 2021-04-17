@@ -34,3 +34,7 @@ __all__ += gpu_ctl.__all__
 
 from . eth_ctl import *
 __all__ += gpu_ctl.__all__
+
+from . version import *
+__all__ += gpu_ctl.__all__
+

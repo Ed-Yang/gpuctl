@@ -62,22 +62,22 @@
             }
         },
         {
-            "name": "gpuctl: notification",
+            "name": "gpuctl: fan control",
             "type": "python",
             "request": "launch",
             "program": "${workspaceFolder}/gpuctl/gpu_main.py",
             "console": "integratedTerminal",
             "python": "${workspaceFolder}/venv/bin/python",
             "args": [
-                "-v",
                 "--fan",
                 "70",
                 "--temp",
-                "10",
+                "80",
+                // "--curve",
+                // "0:10/80:100",
                 "--tas",
                 "./scripts/restart.sh",
-                "--curve",
-                "0:10/80:100"
+                "-v"
             ],
             "env": {
                 "PYTHONPATH": "${workspaceFolder}",

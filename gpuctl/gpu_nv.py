@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import pynvml as nv
+from pynvml.nvml import NVML_ERROR_INVALID_ARGUMENT
 
 from gpuctl import logger, DRYRUN
 from gpuctl import FileVarMixn as fv
@@ -42,7 +43,9 @@ class GpuNV(GpuDev):
         except Exception as e:
             if e.value == nv.NVML_ERROR_GPU_IS_LOST:
                 self.gpu_flag = True
-            logger.debug(f'[{self.pci_dev.slot_name}/{self.name}] {str(e)}')
+            # for each GPU, it have audio and vidoe pci device, supress warning for audio device
+            if e.value != nv.NVML_ERROR_INVALID_ARGUMENT:
+                logger.debug(f'[{self.pci_dev.slot_name}/{self.name}] {str(e)}')
 
         self.curve = GpuNV.CURVE
         self.temp_delta = GpuNV.TEMP_DELTA

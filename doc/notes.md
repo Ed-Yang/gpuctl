@@ -149,6 +149,27 @@ sudo watch -c -n 2 nvidia-info
 
 * The DEVICE_TOPOLOGY_AMD is not supported, so cannot use opencl to get PCI info of AMD GPU.
 
+## User mode
+
+    For running gpuctl in user mode (optional):
+
+    ```shell
+    sudo adduser <user> video
+    ```
+
+    ```shell
+    # display cards
+    ls /sys/class/drm | grep "^card[[:digit:]]$"
+    ```
+
+    ```shell
+    # fill in correct <card-n> and <hwmon-m>
+    sudo chgrp video /sys/class/drm/<card-n>/device/hwmon/<hwmon-m>/pwm1_enable
+    sudo chgrp video /sys/class/drm/<card-n>/device/hwmon/<hwmon-m>/pwm1
+    sudo chmod g+w /sys/class/drm/<card-n>/device/hwmon/<hwmon-m>/pwm1_enable
+    sudo chmod g+w /sys/class/drm/<card-n>/device/hwmon/<hwmon-m>/pwm1
+    ```
+    
 ## Terminology
 
 * Graphics Core Next (GCN) is the codename for both a series of microarchitectures as well as for an instruction set architecture that was developed by AMD

@@ -1,15 +1,19 @@
+#!/usr/bin/env python3
+
 from setuptools import setup
 from setuptools import find_packages
 
 with open('README.md') as f:
     readme = f.read()
 
-VERSION = 'v0.3.5'
-URL = 'https://github.com/Ed-Yang/gpuctl/archive/refs/tags/' + VERSION + '.tar.gz'
+exec(open('gpuctl/version.py').read())
+
+# VERSION = '0.3.6'
+URL = 'https://github.com/Ed-Yang/gpuctl/archive/refs/tags/' + __version__ + '.tar.gz'
 
 setup(
     name='gpuctl',
-    version=VERSION,
+    version=__version__,
     packages=find_packages(),
     url='https://github.com/Ed-Yang/gpuctl',
     download_url=URL,

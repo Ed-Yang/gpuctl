@@ -19,6 +19,9 @@ if [[ $# -ne 0 ]] ; then
     esac
 fi
 
+# set fan speed
+sudo gpuctl --slot $SLOT --set-speed 60
+
 if [[ "$PORT" != "0" ]] ; then
     # printf 'send restart command to slot=%s, port=%s\n' $SLOT $PORT
     echo '{"method": "miner_restart", "jsonrpc": "2.0", "id": 5 }' | nc -w 2 localhost "$PORT"

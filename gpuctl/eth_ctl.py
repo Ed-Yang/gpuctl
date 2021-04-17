@@ -35,7 +35,7 @@ def parse_stats(stats, disp_flag=False):
 
     result = {}
 
-    result['name'] = f"'{stats[0]}'"
+    result['name'] = f"{stats[0]}"[:16]
     result['uptime'] = int(stats[1]) * 60
 
     summary = stats[2].split(';')
@@ -178,8 +178,14 @@ def scan_miner():
             address = i.split(':')
             if len(address) == 2: # address:port
                 pid = int(items[1])
+                port = int(address[1])
                 addr = 'localhost' if address[0] == '*' else address[0]
-                miners.append(EthMiner(addr, int(address[1]), pid))
+                # some miners will spawn thread, skip duplicate port
+                dup_port = any(m.port == port for m in miners)
+                if not dup_port:    
+                    # print(f'dup port {port}')
+                    miners.append(EthMiner(addr, port, pid))
+                
 
     return miners
 
@@ -191,7 +197,7 @@ class EthCtl:
 
     def __init__(self, **kwargs):
 
-        valid_keys = ["base", "temp", "rate", "wait", "rmode", "script", "verbose"]
+        valid_keys = ["base", "temp", "rate", "wait", "rmode", "delay", "script", "verbose"]
         for key in valid_keys:
             setattr(self, key, kwargs.get(key))
 
@@ -201,11 +207,15 @@ class EthCtl:
 
     def _eth_thread(self):
 
-        syslog.syslog('ethctl: started.')
+        syslog.syslog(syslog.LOG_INFO, 'started.')
+
+        t_msg = f"{self.temp}c" if self.temp != None else '-' 
+        r_msg = f"{self.rate} kh/s" if self.rate != None else '-' 
 
         logger.info(f"query intervel: {self.interval} wait-time: {self.wait}")
-        logger.info(f"temperature: {self.temp}c hashrate: {self.rate} kh/s")
-        logger.info(f"restart mode: {self.rmode} script: {self.script}")
+        logger.info(f"temperature threshold: {t_msg}")
+        logger.info(f"hashrate threshold: {r_msg}")
+        logger.info(f"restart mode: {self.rmode} delay: {self.delay} script: {self.script}")
         print('\n')
 
         miner_dict = {}
@@ -227,7 +237,9 @@ class EthCtl:
                     if mon.update() == False:
                         continue
                     miner_dict[addr] = mon
-                    logger.info(f"add miner {mon.name}:{mon.port} pid {mon.pid}")
+                    msg = f"add miner {mon.name}:{mon.port} pid {mon.pid}"
+                    logger.info(msg)
+                    syslog.syslog(syslog.LOG_INFO, msg)
 
 
             cur_time = time.time()
@@ -260,36 +272,41 @@ class EthCtl:
                     restart_flag = True
 
                 if restart_flag:
-                    msg = f"{name}:{port} dev {dev_id} temp {cur_temp} rate {cur_rate}"
-                    logger.warning(msg)
+                    # msg = f"{name}:{port} dev {dev_id} temp {cur_temp} rate {cur_rate}"
+                    # logger.warning(msg)
+                    # syslog.syslog(syslog.LOG_WARNING, msg)
 
                     # check rmode first
                     if self.rmode :
                         msg = f"{name}:{port} dev {dev_id} restarting pid {pid} mode {self.rmode} "
-                        logger.info(msg)
-                        syslog.syslog(msg)
+                        logger.warning(msg)
+                        syslog.syslog(syslog.LOG_WARNING, msg)
                         mon.restart(self.rmode)
-                        logger.info(f"{name}:{port} miner removed")
+                        logger.debug(f"{name}:{port} miner removed")
                         miner_dict.pop(mon.get_address())
 
                     if self.script :
                         params = f"{dev_id} {port} {max_temp} {min_rate}"
-                        msg = f"{name}:{port} delay {self.wait} exec {self.script} {params}"
-                        logger.info(msg)
-                        syslog.syslog(msg)
-
-                        task = Timer(self.wait, sc.exec_script, [self.script, params, True])
-                        task.start()
-                        # sc.exec_script(self.script, params=params, no_wait=True)
+                        if self.delay != None:
+                            msg = f"{name}:{port} delay {self.delay} exec {self.script} {params}"
+                            task = Timer(self.delay, sc.exec_script, [self.script, params, True])
+                            task.start()
+                        else:
+                            msg = f"{name}:{port} exec {self.script} {params}"
+                            sc.exec_script(self.script, params=params, no_wait=True)
+                        logger.warning(msg)
+                        syslog.syslog(syslog.LOG_WARNING, msg)
 
             # remove out-dated miner
             for key in list(miner_dict):
                 mon = miner_dict[key]
                 if (cur_time - mon.last_update) > self.wait:
-                    logger.info(f"{mon.name}:{mon.port} miner removed")
+                    msg = f"{mon.name}:{mon.port} miner removed"
+                    logger.info(msg)
+                    syslog.syslog(syslog.LOG_INFO, msg)
                     miner_dict.pop(key)
 
-        syslog.syslog('ethctl stopped.')
+        syslog.syslog(syslog.LOG_INFO, 'stopped.')
 
 
     def start(self):
