@@ -65,55 +65,62 @@ class GpuNV(GpuDev):
     def set_speed(self, speed):
 
         if DRYRUN:
-            return
+            return True
 
         if self.nvh == None:
-            return
+            return False
 
         cmd = f"nvidia-settings -c {self.display} -a [gpu:{self.nv_id}]/GPUFanControlState=1 -a [fan:{self.nv_id}]/GPUTargetFanSpeed={speed}"
         # logger.debug(f'exec: {cmd}')
+        rv = True
         try:
             sc.exec_cmd(cmd)
             logger.debug(
                 f'[{self.pci_dev.slot_name}/{self.name}] set speed {speed}%')
             self.speed = speed
         except:
-            logger.error(f"{self.pci_dev.slot_name}/{self.name}] set fan speed failed !!")
+            # some GPU card does not install fan (ie. Tesla P4)
+            # logger.error(f"{self.pci_dev.slot_name}/{self.name}] set fan speed failed !!")
+            rv = False
+
+        return rv
 
     def get_speed(self):
         # NOTE: nvmlDeviceGetFanSpeed report wrong speed, use nvidia-settings instead
         # s = nv.nvmlDeviceGetFanSpeed(self.nvh)
         cmd = f"nvidia-settings -t -q  [fan:{self.nv_id}]/GPUTargetFanSpeed"
         # logger.debug(f'exec: {cmd}')
-        speed = 0
+        speed = None
         try:
             s = sc.exec_cmd(cmd)
             speed = int(s)
             # logger.debug(
             #     f'[{self.pci_dev.slot_name}/{self.name}] speed {speed}%')
         except:
-            logger.error(f"{self.pci_dev.slot_name}/{self.name}] get fan speed failed !!")
+            # some GPU card does not install fan (ie. Tesla P4)
+            # logger.error(f"{self.pci_dev.slot_name}/{self.name}] get fan speed failed !!")
+            pass
         return speed
 
     def get_temperature(self):
         if self.nvh == None:
             return None
+        t = None
         try:
             t = nv.nvmlDeviceGetTemperature(self.nvh, nv.NVML_TEMPERATURE_GPU)
             self.temperature = t
         except:
             logger.error(f"{self.pci_dev.slot_name}/{self.name}] get temperature failed !!")
-            t = None
         return t
 
     def get_pwr(self):
         if self.nvh == None:
-            return 0
+            return None
+        pwr = None
         try:
             pwr = nv.nvmlDeviceGetPowerUsage(self.nvh)/1000
             self.pwr = pwr
         except:
             logger.error(f"{self.pci_dev.slot_name}/{self.name}] get pwr failed !!")
-            pwr = 0
 
         return pwr

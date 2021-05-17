@@ -16,7 +16,7 @@ Currently, the example of action script are based on the [miner's remote managem
 ## Environment and Installation
 
 Intel CPU/16G RAM
-Ubuntu 18.4/Python3
+HiveOS/Ubuntu 18.4/Python3
 
 * Environment setup
 
@@ -231,11 +231,9 @@ If a failure is detected, the gpuctl will invoke the given script with slot name
     ```
 
     ```shell
-    ID Slot Name    Vendor   PCI-ID      Temp. Fan  PWR     Working
-    -- ------------ -------- ----------- ----- ---- ------- -------
-    1 0000:01:00.0  NVIDIA   [10DE:1C03]   61c  50%  74.76w True
-    2 0000:0b:00.0  AMD      [1002:67DF]   78c  47%  81.00w True
-    3 0000:0d:00.0  NVIDIA   [10DE:1C03]   49c  50%  72.60w True
+    Set slot 0000:01:00.0 fan speed to 50%
+    Set slot 0000:0b:00.0 fan speed to 50%
+    Set slot 0000:0d:00.0 fan speed to 50%
     ```
 
 * Example 3) If the temperature of a GPU is over 65c, activate the fan speed control for the specific GPU.
@@ -522,3 +520,4 @@ Use PhoenixMiner 5.3b as example:
 * [GPUFan](https://github.com/milani/gpufan)
 * [PyOpenCL Samples](https://github.com/virus-warnning/pyopencl_samples)
 * [Associating OpenCL device ids with GPUs](https://anteru.net/blog/2014/associating-opencl-device-ids-with-gpus/)
+* [NVIDIA/Tips and tricks](https://wiki.archlinux.org/title/NVIDIA/Tips_and_tricks)

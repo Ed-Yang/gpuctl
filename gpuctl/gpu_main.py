@@ -161,6 +161,16 @@ def run():
             if gpu_dev and gpu_dev.is_gpu() and pdev.slot_name not in slot_names:
                 gpu_devices.append(gpu_dev)
 
+    if args.set_speed != None:
+        for gpu in gpu_devices:
+            pdev = gpu.pci_dev
+            # set fan speed
+            print(f"Set slot {pdev.slot_name} fan speed to {args.set_speed}%")
+            rv = gpu.set_speed(args.set_speed)
+            if not rv:
+                print(f"Failed to set slot {pdev.slot_name} fan speed !!!")
+        sys.exit(0)
+
     # list monitored devices
     print("\n")
     print("ID Slot Name    Vendor   PCI-ID      Temp. Fan  PWR     Working")
@@ -169,21 +179,19 @@ def run():
     cnt = 1
     for gpu in gpu_devices:
         pdev = gpu.pci_dev
-        # set fan speed
-        if args.set_speed != None:
-            gpu.set_speed(args.set_speed)
         working = gpu.is_working()
+        t_str = gpu.get_temperature() if gpu.get_temperature() else '--'
+        s_str = gpu.get_speed() if gpu.get_speed() else '--'
+        p_str = gpu.get_pwr() if gpu.get_pwr() else '--'
+
         msg  = f"{cnt:2} {pdev.slot_name} {pdev.vendor_name():8} [{pdev.vendor_id}:{pdev.device_id}] "
-        msg += f"{gpu.get_temperature():4}c {gpu.get_speed():3}% {gpu.get_pwr():6.2f}w {working}"
+        msg += f"{t_str:4}c {s_str:3}% {p_str:6.2f}w {working}"
         print(msg)
         cnt += 1
 
     print("\n")
 
     if args.list:
-        sys.exit(0)
-
-    if args.set_speed != None:
         sys.exit(0)
 
     if len(gpu_devices) == 0:
@@ -193,6 +201,7 @@ def run():
     # remove not working devices
     for gpu in list(gpu_devices):
         if gpu.is_working() == False:
+            print(f'slot {gpu.pci_dev.slot_name} is malfunction, removed !\n')
             gpu_devices.remove(gpu)
 
     gpu_ctl = GpuCtl(gpu_devices=gpu_devices, 

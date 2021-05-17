@@ -28,8 +28,13 @@ class GpuCtl():
         self.vendors = None
 
         # overwrite default value with arguments
-        valid_keys = ["slots", "gpu_devices", 
+        valid_keys = ["gpu_devices", 
                       "fan", "curve", "delta", "temp", "tas", "verbose"]
+
+        for k in kwargs.keys():
+            if k not in valid_keys:
+                return None
+
         for key in valid_keys:
             setattr(self, key, kwargs.get(key))
 
@@ -170,7 +175,9 @@ class GpuCtl():
         self.thread.join()
 
     def set_interval(self, intvl=None, wait_period=None):
-
+        """
+        wait interval must greater than interval
+        """
         interval = intvl if intvl else self.interval
         wait_period = wait_period if wait_period else self.wait
 

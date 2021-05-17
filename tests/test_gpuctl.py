@@ -9,6 +9,15 @@ from gpuctl import PciDev, GpuCtl, GpuDev, GpuAMD, GpuNV, GpuOk
 from gpuctl import GpuOk, GpuNak
         
 class TestGpuCtl(unittest.TestCase):
+
+    def test_invalid_key(self):
+        gpu_ctl = None
+        try:
+            gpu_ctl = GpuCtl(slots='aaaa')
+            self.assertEqual(gpu_ctl, None)
+        except:
+            pass
+
     def test_discover_all(self):
 
         pci_devices = PciDev.discovery()
@@ -68,9 +77,12 @@ class TestGpuCtl(unittest.TestCase):
         gpu_dev = GpuNak(pdev)
         self.assertIsNotNone(gpu_dev)
 
-        gpu_ctl = GpuCtl(gpu_devices=[gpu_dev], fam=10, temp=20, tas='./tests/ok.sh')
+        gpu_ctl = GpuCtl(gpu_devices=[gpu_dev], fan=10, temp=20, tas='./tests/ok.sh')
+        self.assertNotEqual(gpu_ctl, None)
 
-        gpu_ctl.set_interval(wait_period=3)
+        rv = gpu_ctl.set_interval(wait_period=10)
+        self.assertTrue(rv)
+
         gpu_ctl.start()
         time.sleep(5)
         gpu_ctl.stop()
@@ -95,6 +107,25 @@ class TestGpuCtl(unittest.TestCase):
 
         rv = gpu_ctl.set_interval(intvl=2, wait_period=1)
         self.assertFalse(rv)
+
+    def test_nak_gpu(self):
+        slot_name = '1111:11:11.1'
+        pci_id = '1111:1111'
+        pdev = PciDev(slot_name, pci_id, 'mock pci')
+        self.assertIsNotNone(pdev)
+        self.assertEqual(pdev.vendor_name(), 'Other')
+
+        gpu_dev = GpuNak(pdev)
+        self.assertIsNotNone(gpu_dev)
+
+        gpu_ctl = GpuCtl(gpu_devices=[gpu_dev], verbose=True)
+
+        rv = gpu_ctl.set_interval(wait_period=10)
+        self.assertTrue(rv)
+
+        gpu_ctl.start()
+        time.sleep(5)
+        gpu_ctl.stop()
 
 if __name__ == '__main__':
     unittest.main()

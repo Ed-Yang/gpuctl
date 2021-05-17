@@ -11,6 +11,7 @@
             "program": "${file}",
             "cwd": "${workspaceFolder}",
             "console": "integratedTerminal",
+            "justMyCode": false,
             "args": [
                 "--verbose",
             ],
@@ -54,7 +55,8 @@
             "program": "${workspaceFolder}/gpuctl/gpu_main.py",
             "console": "integratedTerminal",
             "args": [
-                "--slots", "0000:01:00.0", 
+                // "--slots", "0000:01:00.0", 
+                // "--slots", "0000:81:00.0", 
                 "--set-speed", "50"
             ],
             "env": {

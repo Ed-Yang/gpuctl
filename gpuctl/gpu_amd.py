@@ -79,6 +79,8 @@ class GpuAMD(GpuDev):
         self.speed = speed
         logger.debug(f'[{self.pci_dev.slot_name}/{self.name}] set speed {speed}% pwm {pwm}')
 
+        return True
+
     def get_speed(self):
         pwn = fv.read_file_value(self.hwmon_dir, GpuAMD.PWM_VAL)
         speed = int(pwn/(self.max-self.min) * 100)

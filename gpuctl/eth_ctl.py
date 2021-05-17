@@ -198,6 +198,11 @@ class EthCtl:
     def __init__(self, **kwargs):
 
         valid_keys = ["base", "temp", "rate", "wait", "rmode", "delay", "script", "verbose"]
+
+        for k in kwargs.keys():
+            if k not in valid_keys:
+                return None
+
         for key in valid_keys:
             setattr(self, key, kwargs.get(key))
 

@@ -8,7 +8,7 @@ import logging
 import syslog
 
 from gpuctl import __version__
-from gpuctl import DRYRUN, GpuCtl, logger
+from gpuctl import DRYRUN, logger
 from gpuctl import PciDev, GpuDev, GpuAMD, GpuNV
 
 from gpuctl import EthCtl, scan_miner
