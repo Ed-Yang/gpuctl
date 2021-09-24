@@ -7,5 +7,5 @@ PORT=3333
 
 ETH_WORKER="nsf-all"
 ETH_URL="${ETH_WALLET}.${ETH_WORKER}"
-$NSF_PATH/nsfminer -P stratum1+tcp://${ETH_URL}@${ETH_POOL} --HWMON 2 --api-port $PORT
+$NSF_PATH/nsfminer -P stratum1+tcp://${ETH_URL}@${ETH_POOL} --HWMON 2 --api-port $PORT --retry-max 0 --retry-delay 5
 

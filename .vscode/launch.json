@@ -90,6 +90,21 @@
             }
         },
         {
+            "name": "ethctl: list",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/gpuctl/eth_main.py",
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}",
+            "args": [
+                "--list",
+            ],
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}",
+                "PHOENIX_PATH":"/custom/PhoenixMiner_5.3b_Linux"
+            }
+        },
+        {
             "name": "ethctl: rate",
             "type": "python",
             "request": "launch",
